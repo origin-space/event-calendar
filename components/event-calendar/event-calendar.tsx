@@ -70,9 +70,9 @@ export function EventCalendar({
   }
 
   return (
-    <div className="flex min-h-[100svh] flex-col">
+    <div className="flex h-[100svh] flex-col">
       {/* Header with navigation and view selector */}
-      <div className="flex items-center justify-between border-b p-4">
+      <div className="shrink-0 flex items-center justify-between border-b overflow-hidden">
         {/* Navigation */}
         <div className="flex items-center gap-4">
           <button
@@ -121,9 +121,7 @@ export function EventCalendar({
       </div>
 
       {/* Calendar view */}
-      <div className="flex-1">
-        {renderView()}
-      </div>
+      {renderView()}
     </div>
   )
 }
