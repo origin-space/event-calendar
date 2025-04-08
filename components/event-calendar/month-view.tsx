@@ -43,7 +43,7 @@ export function MonthView({ currentDate, events = [], eventHeight = 1.5, eventGa
                         style={{
                           '--event-left': left,
                           '--event-width': width,
-                          '--event-top': `${eventIndex * (eventHeight + eventGap)}rem`,
+                          '--event-top': `${eventIndex * (eventHeight + eventGap) + 2}rem`,
                           '--event-height': `${eventHeight}rem`,
                           '--event-gap': `${eventGap}rem`
                         } as React.CSSProperties}
