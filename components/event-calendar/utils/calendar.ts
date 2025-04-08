@@ -1,9 +1,13 @@
 import dayjs from 'dayjs'
 import localeData from 'dayjs/plugin/localeData'
+import weekOfYear from 'dayjs/plugin/weekOfYear'
+import isSameOrBefore from 'dayjs/plugin/isSameOrBefore'
 import { type CalendarCell } from '../types/calendar'
 
-// Extend dayjs with the localeData plugin to access weekday names
+// Extend dayjs with required plugins
 dayjs.extend(localeData)
+dayjs.extend(weekOfYear)
+dayjs.extend(isSameOrBefore)
 
 /**
  * Returns an array of all weekday names (Sunday to Saturday)
@@ -44,28 +48,30 @@ export function getWeekDays(date: dayjs.Dayjs): CalendarCell[] {
 /**
  * Creates an array of calendar cells for an entire month view (including padding days)
  * @param date - A dayjs object representing any date within the target month
- * @returns Array of CalendarCell objects from the first day of the first week to the last day of the last week
+ * @returns Array of arrays, where each inner array represents a week of CalendarCell objects
  */
-export function getDaysInMonth(date: dayjs.Dayjs): CalendarCell[] {
-  const startOfMonth = date.startOf('month')
-  const endOfMonth = date.endOf('month')
-  const startDate = startOfMonth.startOf('week')
-  const endDate = endOfMonth.endOf('week')
-  
-  const days: CalendarCell[] = []
+export function getDaysInMonth(date: dayjs.Dayjs): CalendarCell[][] {
   const today = dayjs()
-  const targetMonth = date.month()
+  const firstDayOfMonth = date.startOf('month')
+  const firstDayOfCalendar = firstDayOfMonth.startOf('week')
+  const lastDayOfMonth = date.endOf('month')
+  const lastDayOfCalendar = lastDayOfMonth.endOf('week')
+  
+  // Get the number of weeks to display
+  const weeksToDisplay = lastDayOfCalendar.week() - firstDayOfCalendar.week() + 1
 
-  let currentDate = startDate.clone()
-  
-  while (currentDate.isBefore(endDate) || currentDate.isSame(endDate)) {
-    days.push({
-      date: currentDate,
-      isCurrentMonth: currentDate.month() === targetMonth,
-      isToday: currentDate.isSame(today, 'day')
+  // Generate weeks
+  return Array.from({ length: weeksToDisplay }, (_, weekIndex) => {
+    const weekStart = firstDayOfCalendar.add(weekIndex, 'week')
+    
+    // Generate days for this week
+    return Array.from({ length: 7 }, (_, dayIndex) => {
+      const currentDate = weekStart.add(dayIndex, 'day')
+      return {
+        date: currentDate,
+        isCurrentMonth: currentDate.month() === date.month(),
+        isToday: currentDate.isSame(today, 'day')
+      }
     })
-    currentDate = currentDate.add(1, 'day')
-  }
-  
-  return days
+  })
 }

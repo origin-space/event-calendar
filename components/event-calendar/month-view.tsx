@@ -3,10 +3,10 @@ import { getDaysInMonth, getWeekDayNames } from './utils/calendar'
 
 export function MonthView({ currentDate }: CalendarViewProps) {
   const weekDays = getWeekDayNames()
-  const days = getDaysInMonth(currentDate)  
+  const weeks = getDaysInMonth(currentDate)
 
   return (
-    <div data-slot="month-view" className="flex h-full min-h-screen flex-col">
+    <div data-slot="month-view" className="flex h-full flex-col">
       {/* Weekday headers */}
       <div className="grid grid-cols-7 border-b">
         {weekDays.map((day) => (
@@ -20,15 +20,19 @@ export function MonthView({ currentDate }: CalendarViewProps) {
       </div>
 
       {/* Calendar grid */}
-      <div className="grid flex-1 grid-cols-7 grid-rows-6">
-        {days.map((cell, index) => (
-          <div
-            key={index}
-            data-today={cell.isToday || undefined}
-            data-outside-month={!cell.isCurrentMonth || undefined}
-            className="min-h-[120px] border p-2 data-[today]:bg-blue-50 data-[outside-month]:bg-gray-50 data-[outside-month]:text-gray-400"
-          >
-            <span className="text-sm font-medium">{cell.date.date()}</span>
+      <div className="flex-1">
+        {weeks.map((week, weekIndex) => (
+          <div key={weekIndex} className="grid grid-cols-7">
+            {week.map((cell, dayIndex) => (
+              <div
+                key={dayIndex}
+                data-today={cell.isToday || undefined}
+                data-outside-month={!cell.isCurrentMonth || undefined}
+                className="min-h-[120px] border p-2 data-[today]:bg-blue-50 data-[outside-month]:bg-gray-50 data-[outside-month]:text-gray-400"
+              >
+                <span className="text-sm font-medium">{cell.date.date()}</span>
+              </div>
+            ))}
           </div>
         ))}
       </div>

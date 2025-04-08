@@ -70,7 +70,7 @@ export function EventCalendar({
   }
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex min-h-[100svh] flex-col">
       {/* Header with navigation and view selector */}
       <div className="flex items-center justify-between border-b p-4">
         {/* Navigation */}
