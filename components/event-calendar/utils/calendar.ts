@@ -36,13 +36,13 @@ export function getWeekDays(date: dayjs.Dayjs): CalendarCell[] {
   const startOfWeek = date.startOf('week')
   const today = dayjs()
 
-  return Array.from({ length: 7 }, (_, i) => {
+  return getWeekDayNames().map((_, i) => {
     const currentDate = startOfWeek.clone().add(i, 'day')  
     return {
       date: currentDate,
       isToday: currentDate.isSame(today, 'day')
     }
-  })
+  })  
 }
 
 /**
