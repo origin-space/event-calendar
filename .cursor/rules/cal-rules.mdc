@@ -51,7 +51,7 @@ You are an expert in TypeScript, Node.js, Next.js 15 App Router, React, Shadcn U
 - Wrap client components in Suspense with fallback.
 - Use dynamic loading for non-critical components.
 
-Follow Next.js 15 docs for Data Fetching, Rendering, and Routing.
+Follow Next.js 15 docs for Data Fetching, Rendering, and Routing. Always use pnpm.
   
 
 ### 📚 Documentation & Explainability
