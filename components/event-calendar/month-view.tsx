@@ -47,7 +47,7 @@ export function MonthView({ currentDate, events = [], eventHeight = 1.5, eventGa
                           '--event-height': `${eventHeight}rem`,
                           '--event-gap': `${eventGap}rem`
                         } as React.CSSProperties}
-                        className={`absolute left-(--event-left) top-(--event-top) w-(--event-width) px-0.5 data-[multiweek=previous]:ps-0 data-[multiweek=next]:pe-0 data-[multiweek=both]:px-0`}
+                        className={`absolute left-(--event-left) top-(--event-top) w-[calc(var(--event-width)-1px)] px-0.5 data-[multiweek=previous]:ps-0 data-[multiweek=next]:pe-0 data-[multiweek=both]:px-0`}
                         title={event.title}
                         data-start-day={isStartDay || undefined}
                         data-multiday={isMultiDay || undefined}
