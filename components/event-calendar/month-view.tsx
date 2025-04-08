@@ -34,7 +34,7 @@ export function MonthView({ currentDate, events = [], eventHeight = 1.5, eventGa
                 >
                   <span className="text-sm font-medium">{cell.date.date()}</span>
                   {dayEvents.map((event, eventIndex) => {
-                    const { left, width, isStartDay, isMultiDay, multiWeek, show } = getEventInfo(event, cell.date, eventIndex)
+                    const { left, width, isStartDay, isMultiDay, multiWeek, show } = getEventInfo(event, cell.date)
                     if (!show) return null
                     
                     return (
