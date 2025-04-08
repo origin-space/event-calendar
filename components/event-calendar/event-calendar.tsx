@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import dayjs from 'dayjs'
 import { cn } from '@/lib/utils'
-import { type CalendarView, type EventCalendarProps } from './types/calendar'
+import { type CalendarView, type CalendarProps } from './types/calendar'
 import { MonthView } from './month-view'
 import { WeekView } from './week-view'
 import { DayView } from './day-view'
@@ -12,8 +12,9 @@ import { AgendaView } from './agenda-view'
 export function EventCalendar({
   initialDate,
   initialView = 'month',
-  daysInAgenda = 30
-}: EventCalendarProps) {
+  daysInAgenda = 30,
+  events,
+}: CalendarProps) {
   const today = dayjs()
   const [currentDate, setCurrentDate] = useState(initialDate || today)
   const [currentView, setCurrentView] = useState<CalendarView>(initialView)
@@ -59,13 +60,13 @@ export function EventCalendar({
   const renderView = () => {
     switch (currentView) {
       case 'month':
-        return <MonthView currentDate={currentDate} />
+        return <MonthView currentDate={currentDate} events={events} eventHeight={1.5} />
       case 'week':
-        return <WeekView currentDate={currentDate} />
+        return <WeekView currentDate={currentDate} events={events} />
       case 'day':
-        return <DayView currentDate={currentDate} />
+        return <DayView currentDate={currentDate} events={events} />
       case 'agenda':
-        return <AgendaView currentDate={currentDate} daysInAgenda={daysInAgenda} />
+        return <AgendaView currentDate={currentDate} events={events} daysInAgenda={daysInAgenda} />
     }
   }
 
