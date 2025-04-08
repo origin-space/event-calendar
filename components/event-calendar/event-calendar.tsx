@@ -60,7 +60,7 @@ export function EventCalendar({
   const renderView = () => {
     switch (currentView) {
       case 'month':
-        return <MonthView currentDate={currentDate} events={events} eventHeight={1.5} />
+        return <MonthView currentDate={currentDate} events={events} />
       case 'week':
         return <WeekView currentDate={currentDate} events={events} />
       case 'day':
