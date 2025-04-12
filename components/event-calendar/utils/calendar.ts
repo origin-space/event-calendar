@@ -41,12 +41,12 @@ export function getWeekDays(date: dayjs.Dayjs): CalendarCell[] {
   const today = dayjs()
 
   return getWeekDayNames().map((_, i) => {
-    const currentDate = startOfWeek.clone().add(i, 'day')  
+    const currentDate = startOfWeek.clone().add(i, 'day')
     return {
       date: currentDate,
       isToday: currentDate.isSame(today, 'day')
     }
-  })  
+  })
 }
 
 /**
@@ -96,6 +96,7 @@ export function getDaysInMonth(date: dayjs.Dayjs): CalendarCell[][] {
  * @returns Array of CalendarEventProps objects that are happening on the specified day
  */
 export function getEventsForDay(date: dayjs.Dayjs, events: CalendarEventProps[]): CalendarEventProps[] {
+  if (!events) return [];
   return events.filter(event => {
     const start = dayjs(event.start);
     const end = dayjs(event.end);
@@ -105,28 +106,26 @@ export function getEventsForDay(date: dayjs.Dayjs, events: CalendarEventProps[])
 }
 
 /**
- * Calculates the vertical layout position for events within a given month view.
- * Augments event objects with a `layout` property containing the `cellSlot`.
- * @param events - The original array of CalendarEventProps.
- * @param monthDate - A dayjs object representing the month being viewed.
- * @returns An array of CalendarEventProps objects.
+ * Calculates the vertical layout position for events within a given WEEK view.
+ * Augments event objects with a `cellSlot` property.
+ * @param allEvents - The original array of CalendarEventProps potentially relevant.
+ * @param weekStartDate - A dayjs object representing the start of the week being viewed.
+ * @returns An array of CalendarEventProps objects relevant to the week, augmented with `cellSlot`.
  */
-export function calculateEventLayout(
-  events: CalendarEventProps[],
-  monthDate: dayjs.Dayjs
+export function calculateWeeklyEventLayout(
+  allEvents: CalendarEventProps[],
+  weekStartDate: dayjs.Dayjs
 ): CalendarEventProps[] {
-  // 1. Determine the date range of the calendar view
-  const firstDayOfMonth = monthDate.startOf('month');
-  const firstDayOfCalendar = firstDayOfMonth.startOf('week');
-  const lastDayOfMonth = monthDate.endOf('month');
-  const lastDayOfCalendar = lastDayOfMonth.endOf('week');
+  // 1. Determine the date range of the specific WEEK view
+  const viewStartDate = weekStartDate.startOf('week');
+  const viewEndDate = weekStartDate.endOf('week');
 
-  // 2. Filter events that fall within the calendar view range
-  const relevantEvents = events.filter(event => {
+  // 2. Filter events that fall within the WEEK view range
+  const relevantEvents = allEvents.filter(event => {
     const start = dayjs(event.start);
     const end = dayjs(event.end);
-    // Check if event overlaps with the calendar view range at all
-    return start.isBefore(lastDayOfCalendar.add(1, 'day')) && end.isSameOrAfter(firstDayOfCalendar);
+    // Check if event overlaps with the week view range at all
+    return end.isSameOrAfter(viewStartDate, 'day') && start.isSameOrBefore(viewEndDate, 'day');
   });
 
   // 3. Sort events: primarily by start date, secondarily by duration (longer first)
@@ -137,8 +136,8 @@ export function calculateEventLayout(
     return endDiff;
   });
 
-  // 4. Calculate layout
-  const occupiedSlots = new Map<string, Set<number>>(); // Key: 'YYYY-MM-DD', Value: Set of occupied cellSlots
+  // 4. Calculate layout FOR THIS WEEK
+  const occupiedSlots = new Map<string, Set<number>>();
   const eventsWithLayout: CalendarEventProps[] = [];
 
   for (const event of sortedEvents) {
@@ -150,11 +149,11 @@ export function calculateEventLayout(
     // Find the first available vertical position (cellSlot)
     while (!positionFound) {
       let slotAvailable = true;
-      // Iterate through each day the event spans *within the calendar view*
-      let currentDay = start.isBefore(firstDayOfCalendar) ? firstDayOfCalendar : start;
-      const lastDay = end.isAfter(lastDayOfCalendar) ? lastDayOfCalendar : end;
+      // Iterate through each day the event spans *within the week view*
+      let currentDay = start.isBefore(viewStartDate) ? viewStartDate : start;
+      const lastDayInWeek = end.isAfter(viewEndDate) ? viewEndDate : end;
 
-      while (currentDay.isSameOrBefore(lastDay, 'day')) {
+      while (currentDay.isSameOrBefore(lastDayInWeek, 'day')) {
         const dateStr = currentDay.format('YYYY-MM-DD');
         const dailyOccupied = occupiedSlots.get(dateStr);
         if (dailyOccupied?.has(currentY)) {
@@ -168,8 +167,8 @@ export function calculateEventLayout(
         // Found a free slot for the entire duration within the view
         positionFound = true;
         // Mark the slot as occupied for all relevant days
-        currentDay = start.isBefore(firstDayOfCalendar) ? firstDayOfCalendar : start; // Reset loop
-         while (currentDay.isSameOrBefore(lastDay, 'day')) {
+        currentDay = start.isBefore(viewStartDate) ? viewStartDate : start;
+         while (currentDay.isSameOrBefore(lastDayInWeek, 'day')) {
           const dateStr = currentDay.format('YYYY-MM-DD');
           if (!occupiedSlots.has(dateStr)) {
             occupiedSlots.set(dateStr, new Set());
@@ -267,4 +266,3 @@ export function getEventInfo(event: CalendarEventProps, cellDate: dayjs.Dayjs) {
     show: true // We already determined it should be shown
   };
 }
-

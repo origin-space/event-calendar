@@ -1,7 +1,7 @@
 import React, { useMemo } from "react"
 import { useEventVisibility } from "./hooks/use-event-visibility"
-import { type CalendarViewProps } from './types/calendar'
-import { getDaysInMonth, getWeekDayNames, getEventInfo, getEventsForDay, calculateEventLayout } from './utils/calendar'
+import { type CalendarViewProps, CalendarEventProps } from './types/calendar'
+import { getDaysInMonth, getWeekDayNames, getEventInfo, getEventsForDay, calculateWeeklyEventLayout } from './utils/calendar'
 
 export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap = 2 }: CalendarViewProps) {
   const weekDays = getWeekDayNames()
@@ -12,9 +12,20 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
     eventGap: eventGap,
   })
 
-  const eventsWithLayout = useMemo(() => {
-    return calculateEventLayout(events, currentDate);
-  }, [events, currentDate]);
+  const weeklyLayouts = useMemo(() => {
+    const layouts = new Map<string, CalendarEventProps[]>();
+    if (!weeks || weeks.length === 0) {
+        return layouts;
+    }
+    weeks.forEach(week => {
+      if (week && week.length > 0 && week[0]?.date) {
+        const weekStartDate = week[0].date.startOf('week');
+        const layoutForWeek = calculateWeeklyEventLayout(events, weekStartDate);
+        layouts.set(weekStartDate.format('YYYY-MM-DD'), layoutForWeek);
+      }
+    });
+    return layouts;
+  }, [events, weeks]);
 
   const visibleCount = getVisibleEventCount();
 
@@ -34,7 +45,11 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
 
       {/* Calendar grid */}
       <div className="flex-1 min-h-0 grid grid-flow-row auto-rows-[minmax(64px,_1fr)]">
-        {weeks.map((week, weekIndex) => (
+        {weeks.map((week, weekIndex) => {
+          const weekStartDateStr = week[0]?.date?.startOf('week').format('YYYY-MM-DD');
+          const layoutForThisWeek = weekStartDateStr ? weeklyLayouts.get(weekStartDateStr) || [] : [];
+
+          return (
           <div key={weekIndex} className="flex flex-col relative not-last:border-b">
             <div className="absolute inset-0 grid grid-cols-7" aria-hidden="true">
               {week.map((cell, dayIndex) => (
@@ -42,7 +57,7 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
                   key={dayIndex}
                   className="not-last:border-e p-2 data-[today]:bg-blue-50 data-[outside-month]:bg-gray-50 data-[outside-month]:text-gray-400 overflow-hidden flex flex-col"
                   data-today={cell.isToday || undefined}
-                  data-outside-month={!cell.isCurrentMonth || undefined}                  
+                  data-outside-month={!cell.isCurrentMonth || undefined}
                 >
                   <span className="text-sm font-medium">{cell.date.date()}</span>
                 </span>
@@ -50,9 +65,8 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
             </div>
             <div className="relative flex-1 grid grid-cols-7 mt-8" ref={weekIndex === 0 ? contentRef : null}>
               {week.map((cell, dayIndex) => {
-                const dayEvents = getEventsForDay(cell.date, eventsWithLayout);
+                const dayEvents = getEventsForDay(cell.date, layoutForThisWeek);
                 const overflowingItems = Math.max(0, dayEvents.length - visibleCount);
-                // Sort events by cellSlot
                 const sortedEvents = [...dayEvents].sort((a, b) => {
                   const slotA = a.cellSlot ?? 0;
                   const slotB = b.cellSlot ?? 0;
@@ -68,12 +82,12 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
                     key={dayIndex}
                   >
                     <h2 className="sr-only">
-                      {sortedEvents.length === 0 ? "No events, " : 
-                      sortedEvents.length === 1 ? "1 event, " : 
+                      {sortedEvents.length === 0 ? "No events, " :
+                      sortedEvents.length === 1 ? "1 event, " :
                       `${sortedEvents.length} events, `}
                       {cell.date.format('dddd, MMMM D')}
                     </h2>
-                    {visibleEvents.map((event) => { 
+                    {visibleEvents.map((event) => {
                       const { left, width, isStartDay, isMultiDay, multiWeek, show } = getEventInfo(event, cell.date)
 
                       const topPosition = event.cellSlot ? event.cellSlot * (eventHeight + eventGap) : 0;
@@ -87,7 +101,7 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
                             '--event-top': `${topPosition}px`,
                             '--event-height': `${eventHeight}px`,
                           } as React.CSSProperties}
-                          className="absolute left-(--event-left) top-(--event-top) w-[calc(var(--event-width)-1px)] px-0.5 data-[multiweek=previous]:ps-0 data-[multiweek=next]:pe-0 data-[multiweek=both]:px-0"
+                          className="absolute left-[var(--event-left)] top-[var(--event-top)] w-[calc(var(--event-width)-1px)] px-0.5 data-[multiweek=previous]:ps-0 data-[multiweek=next]:pe-0 data-[multiweek=both]:px-0"
                           title={event.title}
                           data-start-day={isStartDay || undefined}
                           data-multiday={isMultiDay || undefined}
@@ -106,7 +120,7 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
                           '--event-top': `${(visibleCount - 1) * (eventHeight + eventGap)}px`,
                           '--event-height': `${eventHeight}px`,
                         } as React.CSSProperties}
-                        className="absolute left-(--event-left) top-(--event-top) w-[calc((100%/7)-1px)] px-0.5 data-[multiweek=previous]:ps-0 data-[multiweek=next]:pe-0 data-[multiweek=both]:px-0"
+                        className="absolute left-[var(--event-left)] top-[var(--event-top)] w-[calc((100%/7)-1px)] px-0.5 data-[multiweek=previous]:ps-0 data-[multiweek=next]:pe-0 data-[multiweek=both]:px-0"
                       >
                         <button className="w-full h-[var(--event-height)] px-1 flex items-center text-xs bg-primary/30 text-primary-foreground rounded data-[multiweek=previous]:rounded-s-none data-[multiweek=next]:rounded-e-none data-[multiweek=both]:rounded-none">
                           +{overflowingItems + 1} more
@@ -118,7 +132,8 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
               })}
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
