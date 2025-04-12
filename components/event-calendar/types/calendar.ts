@@ -34,6 +34,7 @@ export interface CalendarEventProps {
   allDay?: boolean
   color?: EventColorProps
   location?: string
+  cellSlot?: number
 }
 
 export type EventColorProps =

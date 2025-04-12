@@ -1,7 +1,9 @@
-import React from "react"
+
+
+import React, { useMemo } from "react"
 import { useEventVisibility } from "./hooks/use-event-visibility"
 import { type CalendarViewProps } from './types/calendar'
-import { getDaysInMonth, getWeekDayNames, getEventInfo, getEventsForDay } from './utils/calendar'
+import { getDaysInMonth, getWeekDayNames, getEventInfo, getEventsForDay, calculateEventLayout } from './utils/calendar'
 
 export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap = 2 }: CalendarViewProps) {
   const weekDays = getWeekDayNames()
@@ -12,7 +14,11 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
     eventGap: eventGap,
   })
 
-  const visibleCount = getVisibleEventCount(events.length)
+  const eventsWithLayout = useMemo(() => {
+    return calculateEventLayout(events, currentDate);
+  }, [events, currentDate]);
+
+  const visibleCount = getVisibleEventCount(events.length);
 
   return (
     <div data-slot="month-view" className="flex-1 flex h-full flex-col">
@@ -46,21 +52,23 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
             </div>
             <div className="relative flex-1 grid grid-cols-7 mt-8" ref={weekIndex === 0 ? contentRef : null}>
               {week.map((cell, dayIndex) => {
-                const dayEvents = getEventsForDay(cell.date, events)
+                const dayEvents = getEventsForDay(cell.date, eventsWithLayout);
                 return (
                   <div
                     key={dayIndex}
-                    
                   >
                     <h2 className="sr-only">
-                      {dayEvents.length === 0 ? "No events, " : 
-                      dayEvents.length === 1 ? "1 event, " : 
-                      `${dayEvents.length} events, `}
+                      {dayEvents.length === 0 ? "No events, " :
+                       dayEvents.length === 1 ? "1 event, " :
+                       `${dayEvents.length} events, `}
                       {cell.date.format('dddd, MMMM D')}
                     </h2>
-                    {dayEvents.map((event, eventIndex) => {
+                    {dayEvents.map((event) => { 
                       const { left, width, isStartDay, isMultiDay, multiWeek, show } = getEventInfo(event, cell.date)
-                      if (!show) return null
+
+                      if (!show) return null;
+
+                      const topPosition = event.cellSlot ? event.cellSlot * (eventHeight + eventGap) : 0;
 
                       return (
                         <div
@@ -68,29 +76,33 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
                           style={{
                             '--event-left': left,
                             '--event-width': width,
-                            '--event-top': `${eventIndex * (eventHeight + eventGap)}px`,
+                            '--event-top': `${topPosition}px`,
                             '--event-height': `${eventHeight}px`,
-                            '--event-gap': `${eventGap}px`
+                            position: 'absolute',
+                            left: `var(--event-left)`,
+                            top: `var(--event-top)`,
+                            width: `calc(var(--event-width) - 1px)`,
+                            height: `var(--event-height)`,
                           } as React.CSSProperties}
-                          className={`absolute left-(--event-left) top-(--event-top) w-[calc(var(--event-width)-1px)] px-0.5 data-[multiweek=previous]:ps-0 data-[multiweek=next]:pe-0 data-[multiweek=both]:px-0`}
+                          className="absolute px-0.5 data-[multiweek=previous]:ps-0 data-[multiweek=next]:pe-0 data-[multiweek=both]:px-0"
                           title={event.title}
                           data-start-day={isStartDay || undefined}
                           data-multiday={isMultiDay || undefined}
                           data-multiweek={multiWeek}
                         >
-                          <span className="h-(--event-height) px-1 flex items-center text-xs bg-primary/30 text-primary-foreground rounded in-data-[multiweek=previous]:rounded-s-none in-data-[multiweek=next]:rounded-e-none in-data-[multiweek=both]:rounded-none">
+                          <span className="h-[var(--event-height)] px-1 flex items-center text-xs bg-primary/30 text-primary-foreground rounded data-[multiweek=previous]:rounded-s-none data-[multiweek=next]:rounded-e-none data-[multiweek=both]:rounded-none">
                             <span className="truncate">{event.title}</span>
                           </span>
                         </div>
-                      )
+                      );
                     })}
                   </div>
-                )
+                );
               })}
             </div>
           </div>
         ))}
       </div>
     </div>
-  )
+  );
 }

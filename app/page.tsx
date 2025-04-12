@@ -72,7 +72,7 @@ const sampleEvents: CalendarEventProps[] = [
     title: "Sales Conference",
     description: "Discuss about new clients",
     start: today.add(4, 'day').set('hour', 14).set('minute', 30).toDate(), // 2:30 PM, 4 days from now
-    end: today.add(7, 'day').set('hour', 14).set('minute', 45).toDate(), // 2:45 PM, 5 days from now
+    end: today.add(9, 'day').set('hour', 14).set('minute', 45).toDate(), // 2:45 PM, 5 days from now
     color: "rose",
     location: "Downtown Cafe",
   },
