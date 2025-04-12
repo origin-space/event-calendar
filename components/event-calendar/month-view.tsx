@@ -94,6 +94,7 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
                 return (
                   <div
                     key={dayIndex}
+                    className="group/row"
                   >
                     <h2 className="sr-only">
                       {sortedEvents.length === 0 ? "No events, " :
@@ -114,7 +115,7 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
                             '--event-top': `${topPosition}px`,
                             '--event-height': `${eventHeight}px`,
                           } as React.CSSProperties}
-                          className="absolute left-[var(--event-left)] top-[var(--event-top)] w-[calc(var(--event-width)-1px)] px-0.5 data-[multiweek=previous]:ps-0 data-[multiweek=next]:pe-0 data-[multiweek=both]:px-0"
+                          className="absolute left-[var(--event-left)] top-[var(--event-top)] w-[calc(var(--event-width)-1px)] data-[multiweek=next]:w-(--event-width) px-0.5 data-[multiweek=previous]:ps-0 data-[multiweek=next]:pe-0 data-[multiweek=both]:px-0 group-last/row:w-(--event-width)"
                           title={event.title}
                           data-cell-slot={event.cellSlot}
                           data-start-day={isStartDay || undefined}
@@ -122,7 +123,7 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
                           data-multiweek={multiWeek}
                           data-hidden={!show || undefined}
                         >
-                          <button className="w-full h-[var(--event-height)] px-1 flex items-center text-xs bg-primary/30 text-primary-foreground rounded data-[multiweek=previous]:rounded-s-none data-[multiweek=next]:rounded-e-none data-[multiweek=both]:rounded-none in-data-[hidden=true]:sr-only">
+                          <button className="w-full h-[var(--event-height)] px-1 flex items-center text-xs bg-primary/30 text-primary-foreground rounded in-data-[multiweek=previous]:rounded-s-none in-data-[multiweek=next]:rounded-e-none in-data-[multiweek=both]:rounded-none in-data-[hidden=true]:sr-only">
                             <span className="truncate">{event.title}</span>
                           </button>
                         </div>
@@ -134,7 +135,7 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
                           '--event-top': `${visibleEvents.length * (eventHeight + eventGap)}px`,
                           '--event-height': `${eventHeight}px`,
                         } as React.CSSProperties}
-                        className="absolute left-[var(--event-left)] top-[var(--event-top)] w-[calc((100%/7)-1px)] px-0.5 data-[multiweek=previous]:ps-0 data-[multiweek=next]:pe-0 data-[multiweek=both]:px-0"
+                        className="absolute left-[var(--event-left)] top-[var(--event-top)] w-[calc((100%/7)-1px)] px-0.5 in-data-[multiweek=previous]:ps-0 in-data-[multiweek=next]:pe-0 in-data-[multiweek=both]:px-0"
                       >
                         <button className="w-full h-[var(--event-height)] px-1 flex items-center text-xs bg-primary/30 text-primary-foreground rounded data-[multiweek=previous]:rounded-s-none data-[multiweek=next]:rounded-e-none data-[multiweek=both]:rounded-none">
                           <span className="truncate">+{hiddenEventsCount}<span className="max-sm:sr-only"> more</span></span>
