@@ -10,7 +10,7 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
   const { contentRef, getVisibleEventCount } = useEventVisibility({
     eventHeight: eventHeight,
     eventGap: eventGap,
-  })
+  });
 
   const weeklyLayouts = useMemo(() => {
     const layouts = new Map<string, CalendarEventProps[]>();
@@ -44,10 +44,23 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
       </div>
 
       {/* Calendar grid */}
-      <div className="flex-1 min-h-0 grid grid-flow-row auto-rows-[minmax(64px,_1fr)]">
+      <div className="flex-1 min-h-0 grid grid-flow-row auto-rows-[minmax(85px,_1fr)]">
         {weeks.map((week, weekIndex) => {
           const weekStartDateStr = week[0]?.date?.startOf('week').format('YYYY-MM-DD');
           const layoutForThisWeek = weekStartDateStr ? weeklyLayouts.get(weekStartDateStr) || [] : [];
+          const hiddenIdsThisWeek = new Set<string | number>();
+          if (visibleCount > 0 && week) {
+              week.forEach(cellInWeek => {
+                  const dayEventsForCheck = getEventsForDay(cellInWeek.date, layoutForThisWeek);
+                  const sortedEventsForCheck = [...dayEventsForCheck].sort((a, b) => (a.cellSlot ?? 0) - (b.cellSlot ?? 0));
+                  const overflowingItemsCheck = Math.max(0, sortedEventsForCheck.length - visibleCount);
+
+                  if (overflowingItemsCheck > 0) {
+                      const hiddenOnThisDay = sortedEventsForCheck.slice(visibleCount - 1);
+                      hiddenOnThisDay.forEach(event => hiddenIdsThisWeek.add(event.id));
+                  }
+              });
+          }
 
           return (
           <div key={weekIndex} className="flex flex-col relative not-last:border-b">
@@ -66,15 +79,17 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
             <div className="relative flex-1 grid grid-cols-7 mt-8" ref={weekIndex === 0 ? contentRef : null}>
               {week.map((cell, dayIndex) => {
                 const dayEvents = getEventsForDay(cell.date, layoutForThisWeek);
-                const overflowingItems = Math.max(0, dayEvents.length - visibleCount);
+                const originalOverflowingItems = Math.max(0, dayEvents.length - visibleCount);
                 const sortedEvents = [...dayEvents].sort((a, b) => {
                   const slotA = a.cellSlot ?? 0;
                   const slotB = b.cellSlot ?? 0;
                   return slotA - slotB;
                 });
-                const visibleEvents = overflowingItems > 0 
-                  ? sortedEvents.slice(0, visibleCount - 1) // Show one less when there's overflow
-                  : sortedEvents;
+                const displayableEvents = sortedEvents.filter(event => !hiddenIdsThisWeek.has(event.id));
+                const visibleEvents = originalOverflowingItems > 0
+                  ? displayableEvents.slice(0, visibleCount > 0 ? visibleCount - 1 : 0)
+                  : displayableEvents;
+                const hiddenEventsCount = sortedEvents.length - visibleEvents.length;
 
                 return (
                   <div
@@ -88,7 +103,6 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
                     </h2>
                     {visibleEvents.map((event) => {
                       const { left, width, isStartDay, isMultiDay, multiWeek, show } = getEventInfo(event, cell.date)
-
                       const topPosition = event.cellSlot ? event.cellSlot * (eventHeight + eventGap) : 0;
 
                       return (
@@ -114,16 +128,16 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
                         </div>
                       );
                     })}
-                    {overflowingItems > 0 && (
+                    {hiddenEventsCount > 0 && (
                       <div
                         style={{
-                          '--event-top': `${(visibleCount - 1) * (eventHeight + eventGap)}px`,
+                          '--event-top': `${visibleEvents.length * (eventHeight + eventGap)}px`,
                           '--event-height': `${eventHeight}px`,
                         } as React.CSSProperties}
                         className="absolute left-[var(--event-left)] top-[var(--event-top)] w-[calc((100%/7)-1px)] px-0.5 data-[multiweek=previous]:ps-0 data-[multiweek=next]:pe-0 data-[multiweek=both]:px-0"
                       >
                         <button className="w-full h-[var(--event-height)] px-1 flex items-center text-xs bg-primary/30 text-primary-foreground rounded data-[multiweek=previous]:rounded-s-none data-[multiweek=next]:rounded-e-none data-[multiweek=both]:rounded-none">
-                          +{overflowingItems + 1} more
+                          <span className="truncate">+{hiddenEventsCount}<span className="max-sm:sr-only"> more</span></span>
                         </button>
                       </div>
                     )}
