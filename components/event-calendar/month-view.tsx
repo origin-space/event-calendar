@@ -52,24 +52,29 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
               {week.map((cell, dayIndex) => {
                 const dayEvents = getEventsForDay(cell.date, eventsWithLayout);
                 const overflowingItems = Math.max(0, dayEvents.length - visibleCount);
+                // Sort events by cellSlot
+                const sortedEvents = [...dayEvents].sort((a, b) => {
+                  const slotA = a.cellSlot ?? 0;
+                  const slotB = b.cellSlot ?? 0;
+                  return slotA - slotB;
+                });
                 const visibleEvents = overflowingItems > 0 
-                  ? dayEvents.slice(0, visibleCount - 1) // Show one less when there's overflow
-                  : dayEvents;
+                  ? sortedEvents.slice(0, visibleCount - 1) // Show one less when there's overflow
+                  : sortedEvents;
+
 
                 return (
                   <div
                     key={dayIndex}
                   >
                     <h2 className="sr-only">
-                      {dayEvents.length === 0 ? "No events, " : 
-                      dayEvents.length === 1 ? "1 event, " : 
-                      `${dayEvents.length} events, `}
+                      {sortedEvents.length === 0 ? "No events, " : 
+                      sortedEvents.length === 1 ? "1 event, " : 
+                      `${sortedEvents.length} events, `}
                       {cell.date.format('dddd, MMMM D')}
                     </h2>
                     {visibleEvents.map((event) => { 
                       const { left, width, isStartDay, isMultiDay, multiWeek, show } = getEventInfo(event, cell.date)
-
-                      if (!show) return;
 
                       const topPosition = event.cellSlot ? event.cellSlot * (eventHeight + eventGap) : 0;
 
@@ -87,8 +92,9 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
                           data-start-day={isStartDay || undefined}
                           data-multiday={isMultiDay || undefined}
                           data-multiweek={multiWeek}
+                          data-hidden={!show || undefined}
                         >
-                          <button className="w-full h-[var(--event-height)] px-1 flex items-center text-xs bg-primary/30 text-primary-foreground rounded data-[multiweek=previous]:rounded-s-none data-[multiweek=next]:rounded-e-none data-[multiweek=both]:rounded-none">
+                          <button className="w-full h-[var(--event-height)] px-1 flex items-center text-xs bg-primary/30 text-primary-foreground rounded data-[multiweek=previous]:rounded-s-none data-[multiweek=next]:rounded-e-none data-[multiweek=both]:rounded-none in-data-[hidden=true]:sr-only">
                             <span className="truncate">{event.title}</span>
                           </button>
                         </div>
