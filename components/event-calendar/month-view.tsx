@@ -1,5 +1,3 @@
-
-
 import React, { useMemo } from "react"
 import { useEventVisibility } from "./hooks/use-event-visibility"
 import { type CalendarViewProps } from './types/calendar'
@@ -18,7 +16,7 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
     return calculateEventLayout(events, currentDate);
   }, [events, currentDate]);
 
-  const visibleCount = getVisibleEventCount(events.length);
+  const visibleCount = getVisibleEventCount();
 
   return (
     <div data-slot="month-view" className="flex-1 flex h-full flex-col">
@@ -53,20 +51,25 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
             <div className="relative flex-1 grid grid-cols-7 mt-8" ref={weekIndex === 0 ? contentRef : null}>
               {week.map((cell, dayIndex) => {
                 const dayEvents = getEventsForDay(cell.date, eventsWithLayout);
+                const overflowingItems = Math.max(0, dayEvents.length - visibleCount);
+                const visibleEvents = overflowingItems > 0 
+                  ? dayEvents.slice(0, visibleCount - 1) // Show one less when there's overflow
+                  : dayEvents;
+
                 return (
                   <div
                     key={dayIndex}
                   >
                     <h2 className="sr-only">
-                      {dayEvents.length === 0 ? "No events, " :
-                       dayEvents.length === 1 ? "1 event, " :
-                       `${dayEvents.length} events, `}
+                      {dayEvents.length === 0 ? "No events, " : 
+                      dayEvents.length === 1 ? "1 event, " : 
+                      `${dayEvents.length} events, `}
                       {cell.date.format('dddd, MMMM D')}
                     </h2>
-                    {dayEvents.map((event) => { 
+                    {visibleEvents.map((event) => { 
                       const { left, width, isStartDay, isMultiDay, multiWeek, show } = getEventInfo(event, cell.date)
 
-                      if (!show) return null;
+                      if (!show) return;
 
                       const topPosition = event.cellSlot ? event.cellSlot * (eventHeight + eventGap) : 0;
 
@@ -85,12 +88,25 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
                           data-multiday={isMultiDay || undefined}
                           data-multiweek={multiWeek}
                         >
-                          <span className="h-[var(--event-height)] px-1 flex items-center text-xs bg-primary/30 text-primary-foreground rounded data-[multiweek=previous]:rounded-s-none data-[multiweek=next]:rounded-e-none data-[multiweek=both]:rounded-none">
+                          <button className="w-full h-[var(--event-height)] px-1 flex items-center text-xs bg-primary/30 text-primary-foreground rounded data-[multiweek=previous]:rounded-s-none data-[multiweek=next]:rounded-e-none data-[multiweek=both]:rounded-none">
                             <span className="truncate">{event.title}</span>
-                          </span>
+                          </button>
                         </div>
                       );
                     })}
+                    {overflowingItems > 0 && (
+                      <div
+                        style={{
+                          '--event-top': `${(visibleCount - 1) * (eventHeight + eventGap)}px`,
+                          '--event-height': `${eventHeight}px`,
+                        } as React.CSSProperties}
+                        className="absolute left-(--event-left) top-(--event-top) w-[calc((100%/7)-1px)] px-0.5 data-[multiweek=previous]:ps-0 data-[multiweek=next]:pe-0 data-[multiweek=both]:px-0"
+                      >
+                        <button className="w-full h-[var(--event-height)] px-1 flex items-center text-xs bg-primary/30 text-primary-foreground rounded data-[multiweek=previous]:rounded-s-none data-[multiweek=next]:rounded-e-none data-[multiweek=both]:rounded-none">
+                          +{overflowingItems + 1} more
+                        </button>
+                      </div>
+                    )}
                   </div>
                 );
               })}
