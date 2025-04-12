@@ -76,7 +76,6 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
                   ? sortedEvents.slice(0, visibleCount - 1) // Show one less when there's overflow
                   : sortedEvents;
 
-
                 return (
                   <div
                     key={dayIndex}
@@ -103,6 +102,7 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
                           } as React.CSSProperties}
                           className="absolute left-[var(--event-left)] top-[var(--event-top)] w-[calc(var(--event-width)-1px)] px-0.5 data-[multiweek=previous]:ps-0 data-[multiweek=next]:pe-0 data-[multiweek=both]:px-0"
                           title={event.title}
+                          data-cell-slot={event.cellSlot}
                           data-start-day={isStartDay || undefined}
                           data-multiday={isMultiDay || undefined}
                           data-multiweek={multiWeek}
