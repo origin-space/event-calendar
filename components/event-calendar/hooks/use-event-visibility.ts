@@ -7,7 +7,7 @@ interface UseEventVisibilityProps {
   eventGap: number
 }
 
-interface EventVisibilityResult {
+interface EventVisibilityResultProps {
   contentRef: React.RefObject<HTMLDivElement>
   contentHeight: number
   getVisibleEventCount: () => number
@@ -17,7 +17,7 @@ interface EventVisibilityResult {
  * Hook for calculating event visibility based on container height
  * Uses ResizeObserver for efficient updates
  */
-export function useEventVisibility({ eventHeight, eventGap }: UseEventVisibilityProps): EventVisibilityResult {
+export function useEventVisibility({ eventHeight, eventGap }: UseEventVisibilityProps): EventVisibilityResultProps {
   const contentRef = useRef<HTMLDivElement>(null)
   const [contentHeight, setContentHeight] = useState<number>(0)
 
@@ -49,5 +49,5 @@ export function useEventVisibility({ eventHeight, eventGap }: UseEventVisibility
     contentRef,
     contentHeight,
     getVisibleEventCount
-  } as EventVisibilityResult
+  } as EventVisibilityResultProps
 }
