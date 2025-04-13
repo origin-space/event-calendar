@@ -313,3 +313,37 @@ export function getDayVisibilityData(
 
     return { visibleEvents, hiddenEventsCount, sortedEvents };
 }
+
+/**
+ * Calculates the set of event IDs that are hidden due to overflow on any day within a given week.
+ * @param week An array of CalendarCell objects representing the week.
+ * @param layoutForThisWeek The layout data (events with cellSlots) for the week.
+ * @param visibleCount The maximum number of events visible per day.
+ * @returns A Set containing the IDs of events hidden somewhere in the week.
+ */
+export function calculateHiddenIdsForWeek(
+    week: CalendarCell[],
+    layoutForThisWeek: CalendarEventProps[],
+    visibleCount: number
+): Set<string | number> {
+    const hiddenIdsThisWeek = new Set<string | number>();
+
+    if (visibleCount <= 0 || !week || week.length === 0) {
+        return hiddenIdsThisWeek; // No hiding if no limit or invalid week
+    }
+
+    week.forEach(cellInWeek => {
+        const dayEventsForCheck = getEventsForDay(cellInWeek.date, layoutForThisWeek);
+
+        // No need to sort if checking length is enough, but sorting helps find *which* are hidden
+        if (dayEventsForCheck.length > visibleCount) {
+            const sortedEventsForCheck = [...dayEventsForCheck].sort((a, b) => (a.cellSlot ?? 0) - (b.cellSlot ?? 0));
+            // Slice to get the events that are actually hidden based on the limit
+            // Original logic showed (visibleCount - 1) items when overflowing
+            const hiddenOnThisDay = sortedEventsForCheck.slice(visibleCount - 1);
+            hiddenOnThisDay.forEach(event => hiddenIdsThisWeek.add(event.id));
+        }
+    });
+
+    return hiddenIdsThisWeek;
+}

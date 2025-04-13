@@ -1,7 +1,7 @@
 import React, { useMemo } from "react"
 import { useEventVisibility } from "./hooks/use-event-visibility"
 import { type CalendarViewProps, CalendarEventProps } from './types/calendar'
-import { getDaysInMonth, getWeekDayNames, getEventInfo, getEventsForDay, calculateWeeklyEventLayout, getDayVisibilityData } from './utils/calendar'
+import { getDaysInMonth, getWeekDayNames, getEventInfo, getEventsForDay, calculateWeeklyEventLayout, getDayVisibilityData, calculateHiddenIdsForWeek } from './utils/calendar'
 
 export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap = 2 }: CalendarViewProps) {
   const weekDays = getWeekDayNames()
@@ -48,19 +48,7 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
         {weeks.map((week, weekIndex) => {
           const weekStartDateStr = week[0]?.date?.startOf('week').format('YYYY-MM-DD');
           const layoutForThisWeek = weekStartDateStr ? weeklyLayouts.get(weekStartDateStr) || [] : [];
-          const hiddenIdsThisWeek = new Set<string | number>();
-          if (visibleCount > 0 && week) {
-              week.forEach(cellInWeek => {
-                  const dayEventsForCheck = getEventsForDay(cellInWeek.date, layoutForThisWeek);
-                  const sortedEventsForCheck = [...dayEventsForCheck].sort((a, b) => (a.cellSlot ?? 0) - (b.cellSlot ?? 0));
-                  const overflowingItemsCheck = Math.max(0, sortedEventsForCheck.length - visibleCount);
-
-                  if (overflowingItemsCheck > 0) {
-                      const hiddenOnThisDay = sortedEventsForCheck.slice(visibleCount - 1);
-                      hiddenOnThisDay.forEach(event => hiddenIdsThisWeek.add(event.id));
-                  }
-              });
-          }
+          const hiddenIdsThisWeek = calculateHiddenIdsForWeek(week, layoutForThisWeek, visibleCount);
 
           return (
           <div key={weekIndex} className="flex flex-col relative not-last:border-b">
