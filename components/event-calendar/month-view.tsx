@@ -1,7 +1,7 @@
 import React, { useMemo } from "react"
 import { useEventVisibility } from "./hooks/use-event-visibility"
 import { type CalendarViewProps, CalendarEventProps } from './types/calendar'
-import { getDaysInMonth, getWeekDayNames, getEventInfo, getEventsForDay, calculateWeeklyEventLayout } from './utils/calendar'
+import { getDaysInMonth, getWeekDayNames, getEventInfo, getEventsForDay, calculateWeeklyEventLayout, getDayVisibilityData } from './utils/calendar'
 
 export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap = 2 }: CalendarViewProps) {
   const weekDays = getWeekDayNames()
@@ -78,18 +78,12 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
             </div>
             <div className="relative flex-1 grid grid-cols-7 mt-8" ref={weekIndex === 0 ? contentRef : null}>
               {week.map((cell, dayIndex) => {
-                const dayEvents = getEventsForDay(cell.date, layoutForThisWeek);
-                const originalOverflowingItems = Math.max(0, dayEvents.length - visibleCount);
-                const sortedEvents = [...dayEvents].sort((a, b) => {
-                  const slotA = a.cellSlot ?? 0;
-                  const slotB = b.cellSlot ?? 0;
-                  return slotA - slotB;
-                });
-                const displayableEvents = sortedEvents.filter(event => !hiddenIdsThisWeek.has(event.id));
-                const visibleEvents = originalOverflowingItems > 0
-                  ? displayableEvents.slice(0, visibleCount > 0 ? visibleCount - 1 : 0)
-                  : displayableEvents;
-                const hiddenEventsCount = sortedEvents.length - visibleEvents.length;
+                const { visibleEvents, hiddenEventsCount, sortedEvents } = getDayVisibilityData(
+                    cell.date,
+                    layoutForThisWeek,
+                    hiddenIdsThisWeek,
+                    visibleCount
+                );
 
                 return (
                   <div

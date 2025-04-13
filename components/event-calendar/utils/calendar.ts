@@ -266,3 +266,50 @@ export function getEventInfo(event: CalendarEventProps, cellDate: dayjs.Dayjs) {
     show: true // We already determined it should be shown
   };
 }
+
+/**
+ * Determines the events to be displayed and the count of hidden events for a specific day cell.
+ * Considers the maximum visible count and events hidden elsewhere within the same week.
+ * @param cellDate The date of the cell being processed.
+ * @param layoutForThisWeek Events layout calculated for the entire week containing cellDate.
+ * @param hiddenIdsThisWeek Set of event IDs hidden elsewhere in the same week.
+ * @param visibleCount Maximum number of events to display before showing "+N more".
+ * @returns An object containing { visibleEvents, hiddenEventsCount, sortedEvents }.
+ */
+export function getDayVisibilityData(
+    cellDate: dayjs.Dayjs,
+    layoutForThisWeek: CalendarEventProps[],
+    hiddenIdsThisWeek: Set<string | number>,
+    visibleCount: number
+): { visibleEvents: CalendarEventProps[]; hiddenEventsCount: number; sortedEvents: CalendarEventProps[] } {
+
+    const dayEvents = getEventsForDay(cellDate, layoutForThisWeek);
+
+    // Return early if no events for the day
+    if (dayEvents.length === 0) {
+        return { visibleEvents: [], hiddenEventsCount: 0, sortedEvents: [] };
+    }
+
+    // Calculate original overflow based on all events for the day (used for slicing logic)
+    const originalOverflowingItems = Math.max(0, dayEvents.length - visibleCount);
+
+    // Sort all events for the day by their calculated weekly slot
+    const sortedEvents = [...dayEvents].sort((a, b) => {
+        const slotA = a.cellSlot ?? 0;
+        const slotB = b.cellSlot ?? 0;
+        return slotA - slotB;
+    });
+
+    // Filter out events that are hidden elsewhere within the same week
+    const displayableEvents = sortedEvents.filter(event => !hiddenIdsThisWeek.has(event.id));
+
+    // Determine the actual visible events using the original slicing structure applied to *displayable* events
+    const visibleEvents = originalOverflowingItems > 0
+      ? displayableEvents.slice(0, visibleCount > 0 ? visibleCount - 1 : 0)
+      : displayableEvents;
+
+    // Calculate the final count of hidden events for this day
+    const hiddenEventsCount = sortedEvents.length - visibleEvents.length;
+
+    return { visibleEvents, hiddenEventsCount, sortedEvents };
+}
