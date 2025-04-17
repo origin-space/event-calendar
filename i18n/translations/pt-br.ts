@@ -1,0 +1,31 @@
+export default {
+  translations: {
+    today: "hoje",
+    pick_a_date: "Escolha uma data",
+    save: "salvar",
+    cancel: "cancelar",
+    title: "título",
+    description: "descrição",
+    start_date: "Data início",
+    start_time: "Hora início",
+    end_date: "Data fim",
+    end_time: "Hora fim",
+    etiquette: "etiqueta",
+    create_event_title: "Criar evento",
+    edit_event_title: "Editar evento",
+    create_event_description: "Crie um novo para o seu calendario",
+    edit_event_description: "Edite os detalhes deste evento",
+    new_event: "Novo evento",
+    all_day: "Dia inteiro",
+    no_events_found: "Não encontrei eventos",
+    no_events_found_for_period: "Não encontrei eventos para este periodo",
+    month: "mês",
+    month_abbr: "m",
+    week: "semana",
+    week_abbr: "s",
+    day: "dia",
+    day_abbr: "d",
+    agenda: "agenda",
+    agenda_abbr: "a"
+  }
+}
