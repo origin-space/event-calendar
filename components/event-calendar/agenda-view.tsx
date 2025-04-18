@@ -49,9 +49,11 @@ export function AgendaView({
             size={32}
             className="text-muted-foreground/50 mb-2"
           />
-          <h3 className="text-lg font-medium">No events found</h3>
+          <h3 className="text-lg font-medium">
+            {t("no_events_found")}
+          </h3>
           <p className="text-muted-foreground">
-            There are no events scheduled for this time period.
+            {t("no_events_found_for_period")}
           </p>
         </div>
       ) : (
