@@ -15,6 +15,7 @@ export default {
     edit_event_title: "Editar evento",
     create_event_description: "Crie um novo para o seu calendario",
     edit_event_description: "Edite os detalhes deste evento",
+    event: "evento",
     new_event: "Novo evento",
     all_day: "Dia inteiro",
     no_events_found: "Não encontrei eventos",
@@ -26,6 +27,10 @@ export default {
     day: "dia",
     day_abbr: "d",
     agenda: "agenda",
-    agenda_abbr: "a"
+    agenda_abbr: "a",
+    updated: "atualizado",
+    added: "adicionado",
+    deleted: "removido",
+    moved: "movido"
   }
 }
