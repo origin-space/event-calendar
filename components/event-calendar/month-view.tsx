@@ -33,6 +33,7 @@ import {
   type CalendarEvent,
 } from "@/components/event-calendar"
 import { DefaultStartHour } from "@/components/event-calendar/constants"
+import { useLocale } from "@/hooks/use-locale"
 
 interface MonthViewProps {
   currentDate: Date
@@ -47,6 +48,7 @@ export function MonthView({
   onEventSelect,
   onEventCreate,
 }: MonthViewProps) {
+  const locale = useLocale()
   const days = useMemo(() => {
     const monthStart = startOfMonth(currentDate)
     const monthEnd = endOfMonth(monthStart)
@@ -59,7 +61,7 @@ export function MonthView({
   const weekdays = useMemo(() => {
     return Array.from({ length: 7 }).map((_, i) => {
       const date = addDays(startOfWeek(new Date()), i)
-      return format(date, "EEE")
+      return format(date, "EEE", { locale })
     })
   }, [])
 
@@ -148,7 +150,7 @@ export function MonthView({
                     }}
                   >
                     <div className="group-data-today:bg-primary group-data-today:text-primary-foreground mt-1 inline-flex size-6 items-center justify-center rounded-full text-sm">
-                      {format(day, "d")}
+                      {format(day, "d", { locale })}
                     </div>
                     <div
                       ref={isReferenceCell ? contentRef : null}
@@ -184,7 +186,8 @@ export function MonthView({
                                     <span>
                                       {format(
                                         new Date(event.start),
-                                        "h:mm"
+                                        "h:mm", 
+                                        { locale }
                                       )}&nbsp;
                                     </span>
                                   )}
@@ -236,7 +239,7 @@ export function MonthView({
                           >
                             <div className="space-y-2">
                               <div className="text-sm font-medium">
-                                {format(day, "EEE d")}
+                                {format(day, "EEE d", { locale })}
                               </div>
                               <div className="space-y-1">
                                 {sortEvents(allEvents).map((event) => {
