@@ -10,6 +10,7 @@ import {
   EventItem,
   getAgendaEventsForDay,
 } from "@/components/event-calendar"
+import { useTranslation } from "react-i18next"
 
 interface AgendaViewProps {
   currentDate: Date
@@ -22,6 +23,7 @@ export function AgendaView({
   events,
   onEventSelect,
 }: AgendaViewProps) {
+  const { t } = useTranslation()
   // Show events for the next days based on constant
   const days = useMemo(() => {
     console.log("Agenda view updating with date:", currentDate.toISOString())
