@@ -23,6 +23,7 @@ import {
   WeekCellsHeight,
   type CalendarEvent,
 } from "@/components/event-calendar"
+import { EndHour, StartHour } from "@/components/event-calendar/constants"
 import { useTranslation } from "react-i18next"
 
 interface DayViewProps {
@@ -51,8 +52,8 @@ export function DayView({
   const hours = useMemo(() => {
     const dayStart = startOfDay(currentDate)
     return eachHourOfInterval({
-      start: dayStart,
-      end: addHours(dayStart, 23),
+      start: addHours(dayStart, StartHour),
+      end: addHours(dayStart, EndHour - 1),
     })
   }, [currentDate])
 
@@ -126,7 +127,7 @@ export function DayView({
       // Calculate top position and height
       const startHour = getHours(adjustedStart) + getMinutes(adjustedStart) / 60
       const endHour = getHours(adjustedEnd) + getMinutes(adjustedEnd) / 60
-      const top = startHour * WeekCellsHeight
+      const top = (startHour - StartHour) * WeekCellsHeight
       const height = (endHour - startHour) * WeekCellsHeight
 
       // Find a column for this event
@@ -187,7 +188,7 @@ export function DayView({
   )
 
   return (
-    <>
+    <div data-slot="day-view" className="contents">
       {showAllDaySection && (
         <div className="border-border/70 bg-muted/50 border-t">
           <div className="grid grid-cols-[3rem_1fr] sm:grid-cols-[4rem_1fr]">
@@ -222,7 +223,7 @@ export function DayView({
         </div>
       )}
 
-      <div className="border-border/70 grid flex-1 grid-cols-[3rem_1fr] border-t sm:grid-cols-[4rem_1fr]">
+      <div className="border-border/70 grid flex-1 grid-cols-[3rem_1fr] overflow-hidden border-t sm:grid-cols-[4rem_1fr]">
         <div>
           {hours.map((hour, index) => (
             <div
@@ -318,6 +319,6 @@ export function DayView({
           })}
         </div>
       </div>
-    </>
+    </div>
   )
 }
