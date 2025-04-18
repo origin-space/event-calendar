@@ -11,6 +11,7 @@ import {
   getEventColorClasses,
   type CalendarEvent,
 } from "@/components/event-calendar"
+import { useTranslation } from "react-i18next"
 
 // Using date-fns format with custom formatting:
 // 'h' - hours (1-12)
@@ -114,6 +115,8 @@ export function EventItem({
   onMouseDown,
   onTouchStart,
 }: EventItemProps) {
+  const { t } = useTranslation()
+  
   const eventColor = event.color
 
   // Use the provided currentTime (for dragging) or the event's actual time
@@ -136,7 +139,7 @@ export function EventItem({
   }, [displayStart, displayEnd])
 
   const getEventTime = () => {
-    if (event.allDay) return "All day"
+    if (event.allDay) return t("all_day")
 
     // For short events (less than 45 minutes), only show start time
     if (durationMinutes < 45) {
@@ -169,7 +172,7 @@ export function EventItem({
           <span className="truncate">
             {!event.allDay && (
               <span className="truncate text-[11px] font-normal opacity-70">
-                {formatTimeWithOptionalMinutes(displayStart)}{" "}
+                {formatTimeWithOptionalMinutes(displayStart)}&nbsp;
               </span>
             )}
             {event.title}
@@ -201,7 +204,7 @@ export function EventItem({
       >
         {durationMinutes < 45 ? (
           <div className="truncate">
-            {event.title}{" "}
+            {event.title}&nbsp;
             {showTime && (
               <span
                 className={cn(
@@ -245,10 +248,12 @@ export function EventItem({
       <div className="text-sm font-medium">{event.title}</div>
       <div className="text-xs opacity-70">
         {event.allDay ? (
-          <span>All day</span>
+          <span>
+            {t("all_day")}
+          </span>
         ) : (
           <span className="uppercase">
-            {formatTimeWithOptionalMinutes(displayStart)} -{" "}
+            {formatTimeWithOptionalMinutes(displayStart)} -&nbsp;
             {formatTimeWithOptionalMinutes(displayEnd)}
           </span>
         )}

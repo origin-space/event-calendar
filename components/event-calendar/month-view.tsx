@@ -184,7 +184,7 @@ export function MonthView({
                                       {format(
                                         new Date(event.start),
                                         "h:mm"
-                                      )}{" "}
+                                      )}&nbsp;
                                     </span>
                                   )}
                                   {event.title}
@@ -219,7 +219,7 @@ export function MonthView({
                               onClick={(e) => e.stopPropagation()}
                             >
                               <span>
-                                + {remainingCount}{" "}
+                                + {remainingCount}&nbsp;
                                 <span className="max-sm:sr-only">more</span>
                               </span>
                             </button>
