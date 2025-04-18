@@ -40,6 +40,7 @@ import {
   StartHour,
 } from "@/components/event-calendar/constants"
 import { useTranslation } from "react-i18next"
+import { useLocale } from "@/hooks/use-locale"
 
 interface EventDialogProps {
   event: CalendarEvent | null
@@ -57,6 +58,7 @@ export function EventDialog({
   onDelete,
 }: EventDialogProps) {
   const { t } = useTranslation()
+  const locale = useLocale()
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [startDate, setStartDate] = useState<Date>(new Date())
@@ -125,7 +127,7 @@ export function EventDialog({
         const value = `${formattedHour}:${formattedMinute}`
         // Use a fixed date to avoid unnecessary date object creations
         const date = new Date(2000, 0, 1, hour, minute)
-        const label = format(date, "h:mm a")
+        const label = format(date, "h:mm a", { locale })
         options.push({ value, label })
       }
     }
@@ -302,7 +304,7 @@ export function EventDialog({
                         !startDate && "text-muted-foreground"
                       )}
                     >
-                      {startDate ? format(startDate, "PPP") : t("pick_a_date")}
+                      {startDate ? format(startDate, "PPP", { locale }) : t("pick_a_date")}
                     </span>
                     <RiCalendarLine
                       size={16}
@@ -374,7 +376,7 @@ export function EventDialog({
                         !endDate && "text-muted-foreground"
                       )}
                     >
-                      {endDate ? format(endDate, "PPP") : t("pick_a_date")}
+                      {endDate ? format(endDate, "PPP", { locale }) : t("pick_a_date")}
                     </span>
                     <RiCalendarLine
                       size={16}
