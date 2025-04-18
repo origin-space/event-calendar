@@ -35,6 +35,7 @@ export default {
     moved: "moved",
     location: "location",
     delete_event: "Delete event",
-    end_date_cannot_be_before_start_date: "End date cannot be before start date"
+    end_date_cannot_be_before_start_date: "End date cannot be before start date",
+    close: "close"
   }
 }

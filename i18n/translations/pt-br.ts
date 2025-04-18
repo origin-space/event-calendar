@@ -35,6 +35,7 @@ export default {
     moved: "movido",
     location: "local",
     delete_event: "Remover evento",
-    end_date_cannot_be_before_start_date: "Data fim não pode ser antes da data início"
+    end_date_cannot_be_before_start_date: "Data fim não pode ser antes da data início",
+    close: "fechar"
   }
 }
