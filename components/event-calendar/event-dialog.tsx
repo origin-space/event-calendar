@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import { RiCalendarLine, RiDeleteBinLine } from "@remixicon/react"
 import { format, isBefore } from "date-fns"
 
-import { cn } from "@/lib/utils"
+import { capitalize, cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import type { CalendarEvent, EventColor } from "@/components/event-calendar"
+import { useTranslation } from "react-i18next"
 
 interface EventDialogProps {
   event: CalendarEvent | null
@@ -49,6 +50,7 @@ export function EventDialog({
   onSave,
   onDelete,
 }: EventDialogProps) {
+  const { t } = useTranslation()
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [startDate, setStartDate] = useState<Date>(new Date())
@@ -141,7 +143,7 @@ export function EventDialog({
 
     // Validate that end date is not before start date
     if (isBefore(end, start)) {
-      setError("End date cannot be before start date")
+      setError(t("end_date_cannot_be_before_start_date"))
       return
     }
 
@@ -215,11 +217,19 @@ export function EventDialog({
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>{event?.id ? "Edit Event" : "Create Event"}</DialogTitle>
+          <DialogTitle>
+            {
+              event?.id 
+              ? t("edit_event_title") 
+              : t("create_event_title")
+            }
+          </DialogTitle>
           <DialogDescription className="sr-only">
-            {event?.id
-              ? "Edit the details of this event"
-              : "Add a new event to your calendar"}
+            {
+              event?.id
+              ? t("edit_event_description")
+              : t("create_event_description")
+            }
           </DialogDescription>
         </DialogHeader>
         {error && (
@@ -229,7 +239,9 @@ export function EventDialog({
         )}
         <div className="grid gap-4 py-4">
           <div className="*:not-first:mt-1.5">
-            <Label htmlFor="title">Title</Label>
+            <Label htmlFor="title">
+              {capitalize(t("title"))}
+            </Label>
             <Input
               id="title"
               value={title}
@@ -238,7 +250,9 @@ export function EventDialog({
           </div>
 
           <div className="*:not-first:mt-1.5">
-            <Label htmlFor="description">Description</Label>
+            <Label htmlFor="description">
+              {capitalize(t("description"))}
+            </Label>
             <Textarea
               id="description"
               value={description}
@@ -249,7 +263,9 @@ export function EventDialog({
 
           <div className="flex gap-4">
             <div className="flex-1 *:not-first:mt-1.5">
-              <Label htmlFor="start-date">Start Date</Label>
+              <Label htmlFor="start-date">
+                {capitalize(t("start_date"))}
+              </Label>
               <Popover open={startDateOpen} onOpenChange={setStartDateOpen}>
                 <PopoverTrigger asChild>
                   <Button
@@ -266,7 +282,7 @@ export function EventDialog({
                         !startDate && "text-muted-foreground"
                       )}
                     >
-                      {startDate ? format(startDate, "PPP") : "Pick a date"}
+                      {startDate ? format(startDate, "PPP") : t("pick_a_date")}
                     </span>
                     <RiCalendarLine
                       size={16}
@@ -298,10 +314,12 @@ export function EventDialog({
 
             {!allDay && (
               <div className="min-w-28 *:not-first:mt-1.5">
-                <Label htmlFor="start-time">Start Time</Label>
+                <Label htmlFor="start-time">
+                  {capitalize(t("start_time"))}
+                </Label>
                 <Select value={startTime} onValueChange={setStartTime}>
                   <SelectTrigger id="start-time">
-                    <SelectValue placeholder="Select time" />
+                    <SelectValue placeholder={t("select_time")} />
                   </SelectTrigger>
                   <SelectContent>
                     {timeOptions.map((option) => (
@@ -317,7 +335,9 @@ export function EventDialog({
 
           <div className="flex gap-4">
             <div className="flex-1 *:not-first:mt-1.5">
-              <Label htmlFor="end-date">End Date</Label>
+              <Label htmlFor="end-date">
+                {capitalize(t("end_date"))}
+              </Label>
               <Popover open={endDateOpen} onOpenChange={setEndDateOpen}>
                 <PopoverTrigger asChild>
                   <Button
@@ -334,7 +354,7 @@ export function EventDialog({
                         !endDate && "text-muted-foreground"
                       )}
                     >
-                      {endDate ? format(endDate, "PPP") : "Pick a date"}
+                      {endDate ? format(endDate, "PPP") : t("pick_a_date")}
                     </span>
                     <RiCalendarLine
                       size={16}
@@ -363,10 +383,12 @@ export function EventDialog({
 
             {!allDay && (
               <div className="min-w-28 *:not-first:mt-1.5">
-                <Label htmlFor="end-time">End Time</Label>
+                <Label htmlFor="end-time">
+                  {capitalize(t("end_time"))}
+                </Label>
                 <Select value={endTime} onValueChange={setEndTime}>
                   <SelectTrigger id="end-time">
-                    <SelectValue placeholder="Select time" />
+                    <SelectValue placeholder={t("select_time")} />
                   </SelectTrigger>
                   <SelectContent>
                     {timeOptions.map((option) => (
@@ -386,11 +408,15 @@ export function EventDialog({
               checked={allDay}
               onCheckedChange={(checked) => setAllDay(checked === true)}
             />
-            <Label htmlFor="all-day">All day</Label>
+            <Label htmlFor="all-day">
+              {t("all_day")}
+            </Label>
           </div>
 
           <div className="*:not-first:mt-1.5">
-            <Label htmlFor="location">Location</Label>
+            <Label htmlFor="location">
+              {t("location")}
+            </Label>
             <Input
               id="location"
               value={location}
@@ -399,7 +425,7 @@ export function EventDialog({
           </div>
           <fieldset className="space-y-4">
             <legend className="text-foreground text-sm leading-none font-medium">
-              Etiquette
+              {capitalize(t("etiquette"))}
             </legend>
             <RadioGroup
               className="flex gap-1.5"
@@ -429,16 +455,18 @@ export function EventDialog({
               variant="outline"
               size="icon"
               onClick={handleDelete}
-              aria-label="Delete event"
+              aria-label={t("delete_event")}
             >
               <RiDeleteBinLine size={16} aria-hidden="true" />
             </Button>
           )}
           <div className="flex flex-1 justify-end gap-2">
             <Button variant="outline" onClick={onClose}>
-              Cancel
+              {capitalize(t("cancel"))}
             </Button>
-            <Button onClick={handleSave}>Save</Button>
+            <Button onClick={handleSave}>
+              {capitalize(t("save"))}
+            </Button>
           </div>
         </DialogFooter>
       </DialogContent>

@@ -6,10 +6,11 @@ export default {
     cancel: "cancel",
     title: "title",
     description: "description",
-    start_date: "Start date",
-    start_time: "Start time",
-    end_date: "End date",
-    end_time: "End time",
+    start_date: "Start Date",
+    start_time: "Start Time",
+    select_time: "Select time",
+    end_date: "End Date",
+    end_time: "End Time",
     etiquette: "etiquette",
     create_event_title: "Create Event",
     edit_event_title: "Edit Event",
@@ -31,6 +32,9 @@ export default {
     updated: "updated",
     added: "added",
     deleted: "deleted",
-    moved: "moved"
+    moved: "moved",
+    location: "location",
+    delete_event: "Delete event",
+    end_date_cannot_be_before_start_date: "End date cannot be before start date"
   }
 }

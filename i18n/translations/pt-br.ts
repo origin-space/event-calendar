@@ -6,10 +6,11 @@ export default {
     cancel: "cancelar",
     title: "título",
     description: "descrição",
-    start_date: "Data início",
-    start_time: "Hora início",
-    end_date: "Data fim",
-    end_time: "Hora fim",
+    start_date: "Data Início",
+    start_time: "Hora Início",
+    select_time: "Selecione a hora",
+    end_date: "Data Fim",
+    end_time: "Hora Fim",
     etiquette: "etiqueta",
     create_event_title: "Criar evento",
     edit_event_title: "Editar evento",
@@ -31,6 +32,9 @@ export default {
     updated: "atualizado",
     added: "adicionado",
     deleted: "removido",
-    moved: "movido"
+    moved: "movido",
+    location: "local",
+    delete_event: "Remover evento",
+    end_date_cannot_be_before_start_date: "Data fim não pode ser antes da data início"
   }
 }
