@@ -128,7 +128,11 @@ export function calculateWeeklyEventLayout(
     return end.isSameOrAfter(viewStartDate, 'day') && start.isSameOrBefore(viewEndDate, 'day');
   });
 
-  // 3. Sort events: All-day first (multi > single), then non-all-day (multi > single), then by start date, then duration
+  // 3. Sort events for layout calculation:
+  //    - All-day events first.
+  //      - Within all-day: multi-day > single-day > start time > duration
+  //    - Then non-all-day events.
+  //      - Within non-all-day: start time > multi-day > single-day > duration
   const sortedEvents = [...relevantEvents].sort((a, b) => {
     const aAllDay = a.allDay ?? false;
     const bAllDay = b.allDay ?? false;
@@ -138,22 +142,34 @@ export function calculateWeeklyEventLayout(
       return aAllDay ? -1 : 1; // All-day comes first
     }
 
-    // Within the same allDay status, prioritize multi-day events
     const aIsMultiDay = dayjs(a.end).diff(dayjs(a.start), 'day') > 0;
     const bIsMultiDay = dayjs(b.end).diff(dayjs(b.start), 'day') > 0;
-    if (aIsMultiDay !== bIsMultiDay) {
-      return aIsMultiDay ? -1 : 1; // Multi-day comes first
-    }
+    const startDiff = dayjs(a.start).diff(dayjs(b.start)); // Compare full start time
+    const endDiff = dayjs(b.end).diff(dayjs(a.end)); // Longer duration first
 
-    // If allDay and multi-day status are the same, sort by start date
-    const startDiff = dayjs(a.start).diff(dayjs(b.start));
-    if (startDiff !== 0) {
-      return startDiff; // Earlier start date comes first
+    if (aAllDay) { // Both are all-day events
+      // Prioritize multi-day within all-day
+      if (aIsMultiDay !== bIsMultiDay) {
+        return aIsMultiDay ? -1 : 1;
+      }
+      // Then by start time
+      if (startDiff !== 0) {
+        return startDiff;
+      }
+      // Then by duration
+      return endDiff;
+    } else { // Both are non-all-day events
+      // Prioritize start time within non-all-day
+      if (startDiff !== 0) {
+        return startDiff;
+      }
+      // Then prioritize multi-day
+      if (aIsMultiDay !== bIsMultiDay) {
+        return aIsMultiDay ? -1 : 1;
+      }
+      // Then by duration
+      return endDiff;
     }
-
-    // If start dates are the same, sort by duration (longer first)
-    const endDiff = dayjs(b.end).diff(dayjs(a.end));
-    return endDiff; // Longer event comes first
   });
 
   // 4. Calculate layout FOR THIS WEEK
@@ -313,7 +329,11 @@ export function getDayVisibilityData(
     // Calculate original overflow based on all events for the day (used for slicing logic)
     const originalOverflowingItems = Math.max(0, dayEvents.length - visibleCount);
 
-    // Sort events: All-day first (multi > single), then non-all-day (multi > single), then by cell slot
+    // Sort events for visibility/slicing, matching the layout logic:
+    //    - All-day events first.
+    //      - Within all-day: multi-day > single-day > start time > cell slot
+    //    - Then non-all-day events.
+    //      - Within non-all-day: start time > multi-day > single-day > cell slot
     const sortedEvents = [...dayEvents].sort((a, b) => {
       const aAllDay = a.allDay ?? false;
       const bAllDay = b.allDay ?? false;
@@ -323,19 +343,35 @@ export function getDayVisibilityData(
         return aAllDay ? -1 : 1; // All-day comes first
       }
 
-      // Within the same allDay status, prioritize multi-day events
       const aIsMultiDay = dayjs(a.end).diff(dayjs(a.start), 'day') > 0;
       const bIsMultiDay = dayjs(b.end).diff(dayjs(b.start), 'day') > 0;
-      if (aIsMultiDay !== bIsMultiDay) {
-        return aIsMultiDay ? -1 : 1; // Multi-day comes first
-      }
-
-      // If allDay and multi-day status are the same, sort by cellSlot
-      // (Using cellSlot here as primary tie-breaker for visibility logic,
-      // as start date/duration were already handled in layout calculation)
-      const slotA = a.cellSlot ?? 0;
+      const startDiff = dayjs(a.start).diff(dayjs(b.start)); // Compare full start time
+      const slotA = a.cellSlot ?? 0; // Use cellSlot as final tie-breaker
       const slotB = b.cellSlot ?? 0;
-      return slotA - slotB;
+
+      if (aAllDay) { // Both are all-day events
+        // Prioritize multi-day within all-day
+        if (aIsMultiDay !== bIsMultiDay) {
+          return aIsMultiDay ? -1 : 1;
+        }
+        // Then by start time
+        if (startDiff !== 0) {
+          return startDiff;
+        }
+        // Then by cell slot
+        return slotA - slotB;
+      } else { // Both are non-all-day events
+        // Prioritize start time within non-all-day
+        if (startDiff !== 0) {
+          return startDiff;
+        }
+        // Then prioritize multi-day
+        if (aIsMultiDay !== bIsMultiDay) {
+          return aIsMultiDay ? -1 : 1;
+        }
+        // Then by cell slot
+        return slotA - slotB;
+      }
     });
 
     // Filter out events that are hidden elsewhere within the same week
