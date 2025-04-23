@@ -128,12 +128,32 @@ export function calculateWeeklyEventLayout(
     return end.isSameOrAfter(viewStartDate, 'day') && start.isSameOrBefore(viewEndDate, 'day');
   });
 
-  // 3. Sort events: primarily by start date, secondarily by duration (longer first)
+  // 3. Sort events: All-day first (multi > single), then non-all-day (multi > single), then by start date, then duration
   const sortedEvents = [...relevantEvents].sort((a, b) => {
+    const aAllDay = a.allDay ?? false;
+    const bAllDay = b.allDay ?? false;
+
+    // Prioritize all-day events
+    if (aAllDay !== bAllDay) {
+      return aAllDay ? -1 : 1; // All-day comes first
+    }
+
+    // Within the same allDay status, prioritize multi-day events
+    const aIsMultiDay = dayjs(a.end).diff(dayjs(a.start), 'day') > 0;
+    const bIsMultiDay = dayjs(b.end).diff(dayjs(b.start), 'day') > 0;
+    if (aIsMultiDay !== bIsMultiDay) {
+      return aIsMultiDay ? -1 : 1; // Multi-day comes first
+    }
+
+    // If allDay and multi-day status are the same, sort by start date
     const startDiff = dayjs(a.start).diff(dayjs(b.start));
-    if (startDiff !== 0) return startDiff;
-    const endDiff = dayjs(b.end).diff(dayjs(a.end)); // Longer events first
-    return endDiff;
+    if (startDiff !== 0) {
+      return startDiff; // Earlier start date comes first
+    }
+
+    // If start dates are the same, sort by duration (longer first)
+    const endDiff = dayjs(b.end).diff(dayjs(a.end));
+    return endDiff; // Longer event comes first
   });
 
   // 4. Calculate layout FOR THIS WEEK
@@ -293,11 +313,29 @@ export function getDayVisibilityData(
     // Calculate original overflow based on all events for the day (used for slicing logic)
     const originalOverflowingItems = Math.max(0, dayEvents.length - visibleCount);
 
-    // Sort all events for the day by their calculated weekly slot
+    // Sort events: All-day first (multi > single), then non-all-day (multi > single), then by cell slot
     const sortedEvents = [...dayEvents].sort((a, b) => {
-        const slotA = a.cellSlot ?? 0;
-        const slotB = b.cellSlot ?? 0;
-        return slotA - slotB;
+      const aAllDay = a.allDay ?? false;
+      const bAllDay = b.allDay ?? false;
+
+      // Prioritize all-day events
+      if (aAllDay !== bAllDay) {
+        return aAllDay ? -1 : 1; // All-day comes first
+      }
+
+      // Within the same allDay status, prioritize multi-day events
+      const aIsMultiDay = dayjs(a.end).diff(dayjs(a.start), 'day') > 0;
+      const bIsMultiDay = dayjs(b.end).diff(dayjs(b.start), 'day') > 0;
+      if (aIsMultiDay !== bIsMultiDay) {
+        return aIsMultiDay ? -1 : 1; // Multi-day comes first
+      }
+
+      // If allDay and multi-day status are the same, sort by cellSlot
+      // (Using cellSlot here as primary tie-breaker for visibility logic,
+      // as start date/duration were already handled in layout calculation)
+      const slotA = a.cellSlot ?? 0;
+      const slotB = b.cellSlot ?? 0;
+      return slotA - slotB;
     });
 
     // Filter out events that are hidden elsewhere within the same week
