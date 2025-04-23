@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import dayjs from 'dayjs'
 import { cn } from '@/lib/utils'
-import { type CalendarView, type CalendarProps } from './types/calendar'
+import { type CalendarView, type CalendarProps, type CalendarEventProps } from './types/calendar'
 import { MonthView } from './month-view'
 import { WeekView } from './week-view'
 import { DayView } from './day-view'
@@ -18,6 +18,7 @@ export function EventCalendar({
   const today = dayjs()
   const [currentDate, setCurrentDate] = useState(initialDate || today)
   const [currentView, setCurrentView] = useState<CalendarView>(initialView)
+  const [myEvents, setMyEvents] = useState<CalendarEventProps[]>(events || [])
 
   const handlePrevious = () => {
     switch (currentView) {
@@ -60,7 +61,7 @@ export function EventCalendar({
   const renderView = () => {
     switch (currentView) {
       case 'month':
-        return <MonthView currentDate={currentDate} events={events} />
+        return <MonthView currentDate={currentDate} events={myEvents} onEventUpdate={handleEventUpdate} />
       case 'week':
         return <WeekView currentDate={currentDate} events={events} />
       case 'day':
@@ -69,6 +70,15 @@ export function EventCalendar({
         return <AgendaView currentDate={currentDate} events={events} daysInAgenda={daysInAgenda} />
     }
   }
+
+  const handleEventUpdate = (updatedEvent: CalendarEventProps) => {
+    console.log("Parent: handleEventUpdate called with:", updatedEvent);
+    setMyEvents(prevEvents =>
+      prevEvents.map(event =>
+        event.id === updatedEvent.id ? updatedEvent : event
+      )
+    );
+  };
 
   return (
     <div className="flex h-[100svh] flex-col">
