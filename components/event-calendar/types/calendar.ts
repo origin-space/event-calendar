@@ -13,6 +13,7 @@ export interface CalendarViewProps {
   events?: CalendarEventProps[]
   eventHeight?: number
   eventGap?: number
+  onEventUpdate?: (event: CalendarEventProps) => void
 }
 
 export interface CalendarProps {
