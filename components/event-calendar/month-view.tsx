@@ -1,12 +1,9 @@
-import React, { useMemo, useState } from "react";
-import { useEventVisibility } from "./hooks/use-event-visibility";
-import { type CalendarViewProps, CalendarEventProps } from './types/calendar';
-import { DndContext, PointerSensor, useSensor, useSensors, closestCenter, DragOverlay, DragOverEvent } from '@dnd-kit/core';
-import { getDaysInMonth, getWeekDayNames, calculateWeeklyEventLayout, calculateHiddenIdsForWeek, getEventInfo } from './utils/calendar';
-import dayjs from 'dayjs';
-import { DroppableDayCell } from './droppable-day-cell';
+import React, { useMemo } from "react"
+import { useEventVisibility } from "./hooks/use-event-visibility"
+import { type CalendarViewProps, CalendarEventProps } from './types/calendar'
+import { getDaysInMonth, getWeekDayNames, getEventInfo, getEventsForDay, calculateWeeklyEventLayout, getDayVisibilityData, calculateHiddenIdsForWeek } from './utils/calendar'
 
-export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap = 2, onEventUpdate }: CalendarViewProps & { onEventUpdate?: (updatedEvent: CalendarEventProps) => void }) {
+export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap = 2 }: CalendarViewProps) {
   const weekDays = getWeekDayNames()
   const weeks = getDaysInMonth(currentDate)
 
@@ -18,7 +15,7 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
   const weeklyLayouts = useMemo(() => {
     const layouts = new Map<string, CalendarEventProps[]>();
     if (!weeks || weeks.length === 0) {
-      return layouts;
+        return layouts;
     }
     weeks.forEach(week => {
       if (week && week.length > 0 && week[0]?.date) {
@@ -32,186 +29,109 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
 
   const visibleCount = getVisibleEventCount();
 
-  const [activeId, setActiveId] = useState<string | number | null>(null);
-  const [activeEventData, setActiveEventData] = useState<CalendarEventProps | null>(null);
-  const [dragStartCellDate, setDragStartCellDate] = useState<string | null>(null);
-  const [hoveredDateStr, setHoveredDateStr] = useState<string | null>(null);
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    })
-  );
-
-  function handleDragStart(event: { active: any }) {
-    const { active } = event;
-    const eventData = events.find(ev => ev.id === active.id);
-    if (eventData && active.data.current?.cellDate) {
-      setActiveId(active.id);
-      setActiveEventData(eventData);
-      setDragStartCellDate(active.data.current.cellDate);
-      setHoveredDateStr(active.data.current.cellDate);
-    }
-  }
-
-  function handleDragOver(event: DragOverEvent) {
-    const { over } = event;
-    setHoveredDateStr(over ? (over.id as string) : null);
-  }
-
-  function handleDragEnd(event: { active: any, over: any }) {
-    const { active, over } = event;
-    const startCellDateStr = dragStartCellDate;
-    setActiveId(null);
-    setActiveEventData(null);
-    setDragStartCellDate(null);
-    setHoveredDateStr(null); // Clear hover
-
-    if (over?.id && active.id && startCellDateStr) {
-      const originalEvent = events.find(ev => ev.id === active.id);
-      const dropDateStr = over.id as string;
-      if (originalEvent && dropDateStr !== startCellDateStr) {
-        const startCellDate = dayjs(startCellDateStr);
-        const dropDate = dayjs(dropDateStr);
-        if (dropDate.isValid() && startCellDate.isValid()) {
-          const dateDiff = dropDate.diff(startCellDate, 'day');
-          const originalEventStart = dayjs(originalEvent.start);
-          const originalEventEnd = dayjs(originalEvent.end);
-          const newStart = originalEventStart.add(dateDiff, 'day');
-          const newEnd = originalEventEnd.add(dateDiff, 'day');
-          const updatedEvent: CalendarEventProps = {
-            ...originalEvent,
-            start: newStart.toISOString(),
-            end: newEnd.toISOString(),
-            cellSlot: undefined,
-          };
-          onEventUpdate?.(updatedEvent);
-        }
-      }
-    }
-  }
-
-  function handleDragCancel() {
-    setActiveId(null);
-    setActiveEventData(null);
-    setDragStartCellDate(null);
-    setHoveredDateStr(null); // Clear hover
-  }
-
-  const highlightedDates = useMemo(() => {
-    const dates = new Set<string>();
-    if (!activeEventData || !hoveredDateStr || !dragStartCellDate) {
-      return dates;
-    }
-    const startCellDate = dayjs(dragStartCellDate);
-    const currentHoverDate = dayjs(hoveredDateStr);
-    if (!currentHoverDate.isValid() || !startCellDate.isValid()) {
-      return dates;
-    }
-    const dateDiff = currentHoverDate.diff(startCellDate, 'day');
-    const originalStart = dayjs(activeEventData.start);
-    const originalEnd = dayjs(activeEventData.end);
-    const projectedStart = originalStart.add(dateDiff, 'day');
-    const projectedEnd = originalEnd.add(dateDiff, 'day');
-    let currentHighlightDate = projectedStart;
-    while (currentHighlightDate.isSameOrBefore(projectedEnd, 'day')) {
-      dates.add(currentHighlightDate.format('YYYY-MM-DD'));
-      currentHighlightDate = currentHighlightDate.add(1, 'day');
-    }
-    return dates;
-  }, [activeEventData, hoveredDateStr, dragStartCellDate]);
-
-
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCenter}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-      onDragCancel={handleDragCancel}
-      onDragOver={handleDragOver}
-    >
-      <div data-slot="month-view" className="flex-1 flex h-full flex-col">
-        {/* Weekday headers */}
-        <div className="grid grid-cols-7 border-b">
-          {weekDays.map((day) => (<div key={day} className="p-2 text-center text-sm font-medium text-gray-500 overflow-hidden">{day}</div>))}
-        </div>
-
-        {/* Calendar grid */}
-        <div className="flex-1 min-h-0 grid grid-flow-row auto-rows-[minmax(85px,_1fr)]">
-          {weeks.map((week, weekIndex) => {
-            const weekStartDateStr = week[0]?.date?.startOf('week').format('YYYY-MM-DD');
-            const layoutForThisWeek = weekStartDateStr ? weeklyLayouts.get(weekStartDateStr) || [] : [];
-            const hiddenIdsThisWeek = calculateHiddenIdsForWeek(week, layoutForThisWeek, visibleCount);
-
-            return (
-              <div key={weekIndex} className="flex flex-col relative not-last:border-b">
-                {/* Background Cells - Apply Conditional Tailwind Class */}
-                <div className="absolute inset-0 grid grid-cols-7" aria-hidden="true">
-                  {week.map((cell, dayIndex) => {
-                    const cellDateStr = cell.date.format('YYYY-MM-DD');
-                    // Determine if this cell should be highlighted
-                    const isHighlighted = highlightedDates.has(cellDateStr);
-                    // Define base classes (ensure no background is set here unless intended)
-                    const baseClasses = "not-last:border-e p-2 data-[today]:bg-blue-50 data-[outside-month]:bg-gray-50 data-[outside-month]:text-gray-400 overflow-hidden flex flex-col";
-                    // Define highlight class (e.g., bg-gray-200)
-                    const highlightClass = isHighlighted ? " bg-gray-200" : ""; // Using Tailwind bg-gray-200
-
-                    return (
-                      <span
-                        key={dayIndex}
-                        // Combine base classes with conditional highlight class
-                        className={`${baseClasses}${highlightClass}`}
-                        data-today={cell.isToday || undefined}
-                        data-outside-month={!cell.isCurrentMonth || undefined}
-                      // Removed data-drop-target-highlight
-                      >
-                        <span className="text-sm font-medium">{cell.date.date()}</span>
-                      </span>
-                    );
-                  })}
-                </div>
-                {/* End Background Cells */}
-
-                {/* Event Layer */}
-                <div className="relative flex-1 grid grid-cols-7 mt-8" ref={weekIndex === 0 ? contentRef : null}>
-                  {/* Render DroppableDayCell */}
-                  {week.map((cell, dayIndex) => (
-                    <DroppableDayCell
-                      key={dayIndex}
-                      dayIndex={dayIndex}
-                      cell={cell}
-                      layoutForThisWeek={layoutForThisWeek}
-                      hiddenIdsThisWeek={hiddenIdsThisWeek}
-                      visibleCount={visibleCount}
-                      eventHeight={eventHeight}
-                      eventGap={eventGap}
-                    />
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-      {/* DragOverlay remains the same */}
-      <DragOverlay dropAnimation={null}>
-        {activeId && activeEventData ? (
-          <div style={{
-            height: `${eventHeight}px`,
-            width: '150px',
-            opacity: 0.9,
-            boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
-            pointerEvents: 'none',
-          }}
-            className="px-1 flex items-center text-xs bg-primary/30 text-primary-foreground rounded"
+    <div data-slot="month-view" className="flex-1 flex h-full flex-col">
+      {/* Weekday headers */}
+      <div className="grid grid-cols-7 border-b">
+        {weekDays.map((day) => (
+          <div
+            key={day}
+            className="p-2 text-center text-sm font-medium text-gray-500 overflow-hidden"
           >
-            <span className="truncate">{activeEventData.title}</span>
+            {day}
           </div>
-        ) : null}
-      </DragOverlay>
-    </DndContext>
+        ))}
+      </div>
+
+      {/* Calendar grid */}
+      <div className="flex-1 min-h-0 grid grid-flow-row auto-rows-[minmax(85px,_1fr)]">
+        {weeks.map((week, weekIndex) => {
+          const weekStartDateStr = week[0]?.date?.startOf('week').format('YYYY-MM-DD');
+          const layoutForThisWeek = weekStartDateStr ? weeklyLayouts.get(weekStartDateStr) || [] : [];
+          const hiddenIdsThisWeek = calculateHiddenIdsForWeek(week, layoutForThisWeek, visibleCount);
+
+          return (
+          <div key={weekIndex} className="flex flex-col relative not-last:border-b">
+            <div className="absolute inset-0 grid grid-cols-7" aria-hidden="true">
+              {week.map((cell, dayIndex) => (
+                <span
+                  key={dayIndex}
+                  className="not-last:border-e p-2 data-[today]:bg-blue-50 data-[outside-month]:bg-gray-50 data-[outside-month]:text-gray-400 overflow-hidden flex flex-col"
+                  data-today={cell.isToday || undefined}
+                  data-outside-month={!cell.isCurrentMonth || undefined}
+                >
+                  <span className="text-sm font-medium">{cell.date.date()}</span>
+                </span>
+              ))}
+            </div>
+            <div className="relative flex-1 grid grid-cols-7 mt-8" ref={weekIndex === 0 ? contentRef : null}>
+              {week.map((cell, dayIndex) => {
+                const { visibleEvents, hiddenEventsCount, sortedEvents } = getDayVisibilityData(
+                    cell.date,
+                    layoutForThisWeek,
+                    hiddenIdsThisWeek,
+                    visibleCount
+                );
+
+                return (
+                  <div
+                    key={dayIndex}
+                    className="group/row"
+                  >
+                    <h2 className="sr-only">
+                      {sortedEvents.length === 0 ? "No events, " :
+                      sortedEvents.length === 1 ? "1 event, " :
+                      `${sortedEvents.length} events, `}
+                      {cell.date.format('dddd, MMMM D')}
+                    </h2>
+                    {visibleEvents.map((event) => {
+                      const { left, width, isStartDay, isMultiDay, multiWeek, show } = getEventInfo(event, cell.date)
+                      const topPosition = event.cellSlot ? event.cellSlot * (eventHeight + eventGap) : 0;
+
+                      return (
+                        <div
+                          key={event.id}
+                          style={{
+                            '--event-left': left,
+                            '--event-width': width,
+                            '--event-top': `${topPosition}px`,
+                            '--event-height': `${eventHeight}px`,
+                          } as React.CSSProperties}
+                          className="absolute left-[var(--event-left)] top-[var(--event-top)] w-[calc(var(--event-width)-1px)] data-[multiweek=next]:w-(--event-width) px-0.5 data-[multiweek=previous]:ps-0 data-[multiweek=next]:pe-0 data-[multiweek=both]:px-0 group-last/row:w-(--event-width)"
+                          title={event.title}
+                          data-cell-slot={event.cellSlot}
+                          data-start-day={isStartDay || undefined}
+                          data-multiday={isMultiDay || undefined}
+                          data-multiweek={multiWeek}
+                          data-hidden={!show || undefined}
+                        >
+                          <button className="w-full h-[var(--event-height)] px-1 flex items-center text-xs bg-primary/30 text-primary-foreground rounded in-data-[multiweek=previous]:rounded-s-none in-data-[multiweek=next]:rounded-e-none in-data-[multiweek=both]:rounded-none in-data-[hidden=true]:sr-only">
+                            <span className="truncate">{event.title}</span>
+                          </button>
+                        </div>
+                      );
+                    })}
+                    {hiddenEventsCount > 0 && (
+                      <div
+                        style={{
+                          '--event-top': `${visibleEvents.length * (eventHeight + eventGap)}px`,
+                          '--event-height': `${eventHeight}px`,
+                        } as React.CSSProperties}
+                        className="absolute left-[var(--event-left)] top-[var(--event-top)] w-[calc((100%/7)-1px)] px-0.5 in-data-[multiweek=previous]:ps-0 in-data-[multiweek=next]:pe-0 in-data-[multiweek=both]:px-0"
+                      >
+                        <button className="w-full h-[var(--event-height)] px-1 flex items-center text-xs bg-primary/30 text-primary-foreground rounded data-[multiweek=previous]:rounded-s-none data-[multiweek=next]:rounded-e-none data-[multiweek=both]:rounded-none">
+                          <span className="truncate">+{hiddenEventsCount}<span className="max-sm:sr-only"> more</span></span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
