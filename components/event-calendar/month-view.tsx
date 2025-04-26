@@ -46,7 +46,7 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
   const weeklyLayouts = useMemo(() => {
     const layouts = new Map<string, CalendarEventProps[]>();
     if (!weeks || weeks.length === 0) {
-        return layouts;
+      return layouts;
     }
     weeks.forEach(week => {
       if (week && week.length > 0 && week[0]?.date) {
@@ -67,8 +67,8 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
     if (event.active.data.current?.type === 'event') {
       setActiveDragItem(event.active) // Store the full active object
       setCurrentOverDate(null)
-    // Reset the offset when a new drag starts
-    offsetRef.current = null;
+      // Reset the offset when a new drag starts
+      offsetRef.current = null;
     }
   }
 
@@ -83,7 +83,7 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
     // Calculate offset only once during a drag operation
     if (offsetRef.current === null && over?.data?.current?.type === 'cell') {
       const startDate = active?.data?.current?.event.start;
-      const grabDate = over?.data?.current?.date;      
+      const grabDate = over?.data?.current?.date;
 
       if (startDate && grabDate) {
         // Calculate the offset between dragDate and grabDate, ignoring time
@@ -94,7 +94,7 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
     }
 
     // Use the offset value in your drag logic
-    const currentOffset = offsetRef.current;    
+    const currentOffset = offsetRef.current;
 
     // Update the current over date for projection rendering
     if (over?.data?.current?.type === 'cell') {
@@ -159,8 +159,8 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
 
     // Retrieve stored position for overlay, otherwise use grid calculation
     const topPosition = isOverlay
-        ? activeDragItemForOverlay?.data.current?.initialTopPosition ?? 0
-        : gridTopPosition;
+      ? activeDragItemForOverlay?.data.current?.initialTopPosition ?? 0
+      : gridTopPosition;
 
     // Opacity only for the overlay item now, original is hidden via visibility
     const opacityClass = isDragging && isOverlay ? 'opacity-75' : ''; // Example: slightly transparent overlay
@@ -182,7 +182,7 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
           <div
             style={{
               height: `${eventHeight}px`,
-              width: `${100*days}%`,
+              width: `${100 * days}%`,
               // Apply the retrieved topPosition
               position: 'relative', // Ensure positioning context if needed by style below
               top: `${topPosition}px` // Use standard top property
@@ -210,12 +210,12 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
           className={`absolute left-[var(--event-left)] top-[var(--event-top)] w-[calc(var(--event-width)-1px)] data-[multiweek=next]:w-(--event-width) px-0.5 data-[multiweek=previous]:ps-0 data-[multiweek=next]:pe-0 data-[multiweek=both]:px-0 group-last/row:w-(--event-width) ${pointerEventsClass} transition-all duration-200 ease-out`} // Removed opacityClass here, handled by DraggableEvent visibility
           title={event.title}
           data-cell-slot={event.cellSlot}
-        data-start-day={isStartDay || undefined}
-        data-multiday={isMultiDay || undefined}
-        data-multiweek={multiWeek}
-        data-hidden={!show || undefined}
-        data-projection={isProjection || undefined}
-      >
+          data-start-day={isStartDay || undefined}
+          data-multiday={isMultiDay || undefined}
+          data-multiweek={multiWeek}
+          data-hidden={!show || undefined}
+          data-projection={isProjection || undefined}
+        >
           {/* Inner content - structure remains similar */}
           <div className="w-full h-[var(--event-height)] px-1 flex items-center text-xs bg-primary/30 text-primary-foreground rounded in-data-[multiweek=previous]:rounded-s-none in-data-[multiweek=next]:rounded-e-none in-data-[multiweek=both]:rounded-none in-data-[hidden=true]:sr-only">
             <span className="truncate">{event.title}</span>
@@ -297,10 +297,10 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
                 <div className="relative flex-1 grid grid-cols-7 mt-8" ref={weekIndex === 0 ? contentRef : null}>
                   {week.map((cell, dayIndex) => {
                     const { visibleEvents, hiddenEventsCount, sortedEvents } = getDayVisibilityData(
-                        cell.date,
-                        layoutForThisWeek,
-                        hiddenIdsThisWeek,
-                        visibleCount
+                      cell.date,
+                      layoutForThisWeek,
+                      hiddenIdsThisWeek,
+                      visibleCount
                     );
 
                     return (
@@ -308,8 +308,8 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
                         <>
                           <h2 className="sr-only">
                             {sortedEvents.length === 0 ? "No events, " :
-                            sortedEvents.length === 1 ? "1 event, " :
-                            `${sortedEvents.length} events, `}
+                              sortedEvents.length === 1 ? "1 event, " :
+                                `${sortedEvents.length} events, `}
                             {cell.date.format('dddd, MMMM D')}
                           </h2>
 
