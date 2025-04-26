@@ -276,11 +276,8 @@ export function getEventInfo(event: CalendarEventProps, cellDate: dayjs.Dayjs) {
   // Calculate the number of days this segment spans *within this week*
   const daysInSegmentThisWeek = segmentEnd.diff(segmentStart, 'day') + 1;
 
-  // Calculate left offset based on the segment's start day within the week
-  const left = `${((segmentStartDayOfWeek * 100) / 7).toFixed(2)}%`;
-
   // Calculate width based on the number of days in the segment for this week
-  const width = `${((daysInSegmentThisWeek * 100) / 7).toFixed(2)}%`;
+  const width = `${(daysInSegmentThisWeek * 100).toFixed(2)}%`;
 
 
   // --- Determine Multi-Week Status ---
@@ -302,7 +299,6 @@ export function getEventInfo(event: CalendarEventProps, cellDate: dayjs.Dayjs) {
   // else: Starts and ends within the same week (multiWeek is undefined)
 
   return {
-    left: left,
     width: width,
     days,
     daysInPreviousWeeks,

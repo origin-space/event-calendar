@@ -181,7 +181,7 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
                    })}
                  </div>
                  {/* Foreground grid for events and drop zones */}
-                 <div className="relative flex-1 grid grid-cols-7 mt-8" ref={weekIndex === 0 ? contentRef : null}>
+                 <div className="relative flex-1 grid grid-cols-7">
                    {week.map((cell, dayIndex) => {
                      const { visibleEvents, hiddenEventsCount, sortedEvents } = getDayVisibilityData(
                        cell.date,
@@ -191,7 +191,7 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
                      );
 
                     return (
-                      <DroppableCell key={dayIndex} cellDate={cell.date}>
+                      <DroppableCell key={dayIndex} cellDate={cell.date} ref={weekIndex === 0 && dayIndex === 0 ? contentRef : null}>
                         <>
                           <h2 className="sr-only">
                             {sortedEvents.length === 0 ? "No events, " :
@@ -228,18 +228,16 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
                               />
                             );
                           })}
-
                           {/* Hidden events count */}
                           {hiddenEventsCount > 0 && (
                             <div
                               style={{
-                                '--event-top': `${visibleCount * (eventHeight + eventGap)}px`,
+                                '--event-top': `${(visibleCount - 1) * (eventHeight + eventGap)}px`,
                                 '--event-height': `${eventHeight}px`,
                               } as React.CSSProperties}
                               className="absolute left-0 top-[var(--event-top)] w-full px-0.5"
-                              aria-hidden="true"
                             >
-                              <button className="w-full h-[var(--event-height)] px-1 flex items-center text-xs bg-gray-200 text-gray-700 rounded cursor-default" tabIndex={-1}>
+                              <button className="w-full h-[var(--event-height)] px-1 flex items-center text-xs bg-gray-200 text-gray-700 rounded cursor-default">
                                 <span className="truncate">+{hiddenEventsCount}<span className="max-sm:sr-only"> more</span></span>
                               </button>
                             </div>
