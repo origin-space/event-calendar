@@ -7,7 +7,6 @@ import { getEventInfo } from './utils/calendar'; // Assuming getEventInfo is her
 interface EventItemProps {
   event: CalendarEventProps;
   cellDate: dayjs.Dayjs; // The specific date cell this instance is related to
-  isDragging?: boolean; // Is the original DraggableEvent being dragged?
   isOverlay?: boolean;
   activeDragItemForOverlay?: Active | null; // Only relevant for overlay
   eventHeight: number;
@@ -21,7 +20,6 @@ interface EventItemProps {
 export function EventItem({
   event,
   cellDate,
-  isDragging = false,
   isOverlay = false,
   activeDragItemForOverlay,
   eventHeight,
@@ -59,7 +57,6 @@ export function EventItem({
         style={{
           transform: `translateX(-${daysInPrevWeeks * 100 / 7}%)`,
           width: `${100 * days}%`, // Set width based on total event days
-          position: 'relative', // Context for inner positioning
         }}
         data-testid={`event-overlay-${event.id}`} // Test ID for overlay
       >
@@ -98,11 +95,10 @@ export function EventItem({
       data-start-day={isStartDay || undefined}
       data-multiday={isMultiDay || undefined}
       data-multiweek={multiWeek}
-      data-dragging={isDragging || undefined}
       data-hidden={(!show) || undefined}
     >
       {/* #Reason: Inner div for background, text, and rounded corners. Uses `invisible` when hidden to maintain layout space. */}
-      <div className="w-full h-[var(--event-height)] px-1 flex items-center text-xs bg-primary/30 text-primary-foreground rounded in-data-[multiweek=previous]:rounded-s-none in-data-[multiweek=next]:rounded-e-none in-data-[multiweek=both]:rounded-none in-data-[hidden=true]:invisible in-data-[dragging=true]:opacity-50">
+      <div className="w-full h-[var(--event-height)] px-1 flex items-center text-xs bg-primary/30 text-primary-foreground rounded in-data-[multiweek=previous]:rounded-s-none in-data-[multiweek=next]:rounded-e-none in-data-[multiweek=both]:rounded-none in-data-[hidden=true]:invisible in-aria-pressed:opacity-50">
         <span className="truncate">{event.title}</span>
       </div>
     </div>
