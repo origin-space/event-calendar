@@ -76,7 +76,11 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
 
   const handleDragOver = (event: DragOverEvent) => {
     const { over, active } = event
-    if (!over?.data?.current?.type || !active?.data?.current?.type) return;
+
+    if (!over || !active?.data?.current?.type) { 
+      setCurrentOverDate(null); 
+      if (!over) return;
+    }
 
     if (offsetRef.current === null && over?.data?.current?.type === 'cell' && active.data.current?.type === 'event') {
       const startDate = active?.data?.current?.event.start;
