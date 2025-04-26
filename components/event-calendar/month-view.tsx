@@ -9,10 +9,11 @@ import {
   type DragEndEvent,
   type Active,
   pointerWithin,
-  useDraggable,
   useDroppable,
   DragOverlay,
 } from "@dnd-kit/core"
+import { DraggableEvent } from "./draggable-event"
+import { DroppableCell } from "./droppable-cell"
 import dayjs from "dayjs"
 import isBetween from 'dayjs/plugin/isBetween';
 
@@ -22,74 +23,6 @@ dayjs.extend(isBetween);
 import { useEventVisibility } from "./hooks/use-event-visibility"
 import { type CalendarViewProps, CalendarEventProps } from './types/calendar'
 import { getDaysInMonth, getWeekDayNames, getEventInfo, calculateWeeklyEventLayout, getDayVisibilityData, calculateHiddenIdsForWeek } from './utils/calendar'
-
-// --- Draggable Event Component ---
-interface DraggableEventProps {
-  event: CalendarEventProps;
-  cellDate: dayjs.Dayjs;
-  isBeingDragged: boolean;
-  renderEvent: (event: CalendarEventProps, cellDate: dayjs.Dayjs, isProjection?: boolean, isDragging?: boolean) => React.ReactNode;
-  eventHeight: number;
-  eventGap: number;
-}
-
-function DraggableEvent({ event, cellDate, isBeingDragged, renderEvent, eventHeight, eventGap }: DraggableEventProps) {
-  const uniqueSegmentId = `${event.id}-${cellDate.format('YYYY-MM-DD')}`;
-
-  // Calculate topPosition based on the event's slot *before* drag starts
-  const initialTopPosition = event.cellSlot ? event.cellSlot * (eventHeight + eventGap) : 0;
-
-  // Calculate daysInPreviousWeeks for this specific segment
-  const segmentInfo = getEventInfo(event, cellDate);
-  const segmentDaysInPrevWeeks = segmentInfo.show ? segmentInfo.daysInPreviousWeeks : 0;
-
-  const { attributes, listeners, setNodeRef } = useDraggable({
-    id: uniqueSegmentId,
-    data: {
-      event: event,
-      type: 'event',
-      dragDate: cellDate.toISOString(),
-      initialTopPosition: initialTopPosition,
-      segmentDaysInPrevWeeks: segmentDaysInPrevWeeks,
-    },
-  });
-
-  // Apply listeners and attributes
-  // Apply transitions for opacity and scale on drag start/end
-  const style: React.CSSProperties = isBeingDragged
-    ? { opacity: 0.2, transition: 'opacity 0.15s ease-out, transform 0.15s ease-out' } // Fade out and shrink slightly
-    : { opacity: 1, transition: 'opacity 0.15s ease-out, transform 0.15s ease-out' }; // Fade in and grow back
-
-  return (
-    <div ref={setNodeRef} {...listeners} {...attributes} style={style}>
-      {/* Render event normally, isDragging is not needed here anymore for styling */}
-      {renderEvent(event, cellDate, false, false)}
-    </div>
-  );
-}
-
-// --- Droppable Cell Component ---
-interface DroppableCellProps {
-  cellDate: dayjs.Dayjs;
-  children: React.ReactNode;
-}
-
-function DroppableCell({ cellDate, children }: DroppableCellProps) {
-  const { setNodeRef } = useDroppable({
-    id: `cell-${cellDate.format('YYYY-MM-DD')}`,
-    data: {
-      date: cellDate.toISOString(), // Store the date this cell represents
-      type: 'cell',
-    },
-  });
-
-  return (
-    <div ref={setNodeRef} className="group/row">
-      {children}
-    </div>
-  );
-}
-
 
 // --- MonthView Component ---
 export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap = 2, onEventUpdate }: CalendarViewProps) {
