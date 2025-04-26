@@ -6,13 +6,12 @@ import { Dayjs } from "dayjs";
 interface DraggableEventProps {
   event: CalendarEventProps;
   cellDate: Dayjs;
-  isBeingDragged: boolean;
   renderEvent: (event: CalendarEventProps, cellDate: Dayjs) => React.ReactNode;
   eventHeight: number;
   eventGap: number;
 }
 
-export function DraggableEvent({ event, cellDate, isBeingDragged, renderEvent, eventHeight, eventGap }: DraggableEventProps) {
+export function DraggableEvent({ event, cellDate, renderEvent, eventHeight, eventGap }: DraggableEventProps) {
   const uniqueSegmentId = `${event.id}-${cellDate.format('YYYY-MM-DD')}`;
 
   // Calculate topPosition based on the event's slot *before* drag starts
@@ -33,14 +32,8 @@ export function DraggableEvent({ event, cellDate, isBeingDragged, renderEvent, e
     },
   });
 
-  // Apply listeners and attributes
-  // Apply transitions for opacity and scale on drag start/end
-  const style: React.CSSProperties = isBeingDragged
-    ? { opacity: 0.2, transition: 'opacity 0.15s ease-out' } // Simplified transition
-    : { opacity: 1, transition: 'opacity 0.15s ease-out' };
-
   return (
-    <div ref={setNodeRef} {...listeners} {...attributes} style={style}>
+    <div ref={setNodeRef} {...listeners} {...attributes}>
       {/* Render event normally, isDragging is not needed here anymore for styling */}
       {renderEvent(event, cellDate)}
     </div>

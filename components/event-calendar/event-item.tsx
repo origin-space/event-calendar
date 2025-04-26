@@ -98,10 +98,11 @@ export function EventItem({
       data-start-day={isStartDay || undefined}
       data-multiday={isMultiDay || undefined}
       data-multiweek={multiWeek}
-      data-hidden={(!show || isDragging) || undefined}
+      data-dragging={isDragging || undefined}
+      data-hidden={(!show) || undefined}
     >
       {/* #Reason: Inner div for background, text, and rounded corners. Uses `invisible` when hidden to maintain layout space. */}
-      <div className="w-full h-[var(--event-height)] px-1 flex items-center text-xs bg-primary/30 text-primary-foreground rounded in-data-[multiweek=previous]:rounded-s-none in-data-[multiweek=next]:rounded-e-none in-data-[multiweek=both]:rounded-none in-data-[hidden=true]:invisible">
+      <div className="w-full h-[var(--event-height)] px-1 flex items-center text-xs bg-primary/30 text-primary-foreground rounded in-data-[multiweek=previous]:rounded-s-none in-data-[multiweek=next]:rounded-e-none in-data-[multiweek=both]:rounded-none in-data-[hidden=true]:invisible in-data-[dragging=true]:opacity-50">
         <span className="truncate">{event.title}</span>
       </div>
     </div>

@@ -209,7 +209,6 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
                                 key={uniqueSegmentKey}
                                 event={event}
                                 cellDate={cell.date} // Pass cellDate context
-                                isBeingDragged={isEventBeingDragged} // Pass status from MonthView
                                 // #Reason: Use inline function to render EventItem.
                                 // Removed spread props, explicitly pass isDragging.
                                 renderEvent={() => ( // No args needed from DraggableEvent anymore
