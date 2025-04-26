@@ -157,38 +157,38 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
           {weeks.map((week, weekIndex) => {
             const weekStartDateStr = week[0]?.date?.startOf('week').format('YYYY-MM-DD');
             const layoutForThisWeek = weekStartDateStr ? weeklyLayouts.get(weekStartDateStr) || [] : [];
-            const hiddenIdsThisWeek = calculateHiddenIdsForWeek(week as CalendarCell[], layoutForThisWeek, visibleCount) as Set<string>; 
+            const hiddenIdsThisWeek = calculateHiddenIdsForWeek(week as CalendarCell[], layoutForThisWeek, visibleCount) as Set<string>;
 
             return (
               <div key={weekIndex} className="flex flex-col relative not-last:border-b">
-                 {/* Background grid cells */}
-                 <div className="absolute inset-0 grid grid-cols-7" aria-hidden="true">
-                   {week.map((cell, dayIndex) => {
-                     const isPotentialDropTarget = potentialDropRange && cell.date.isBetween(potentialDropRange.start, potentialDropRange.end, 'day', '[]');
-                     const highlightClass = isPotentialDropTarget ? 'bg-gray-200 transition-colors duration-150 ease-in-out' : '';
+                {/* Background grid cells */}
+                <div className="absolute inset-0 grid grid-cols-7" aria-hidden="true">
+                  {week.map((cell, dayIndex) => {
+                    const isPotentialDropTarget = potentialDropRange && cell.date.isBetween(potentialDropRange.start, potentialDropRange.end, 'day', '[]');
+                    const highlightClass = isPotentialDropTarget ? 'bg-gray-200 transition-colors duration-150 ease-in-out' : '';
 
-                     return (
-                       <span
-                         key={dayIndex}
-                         className={`not-last:border-e p-2 data-[today]:bg-blue-50 data-[outside-month]:bg-gray-50 data-[outside-month]:text-gray-400 overflow-hidden flex flex-col ${highlightClass}`}
-                         data-today={cell.isToday || undefined}
-                         data-outside-month={!cell.isCurrentMonth || undefined}
-                         data-potential-drop={isPotentialDropTarget || undefined}
-                       >
-                         <span className="text-sm font-medium">{cell.date.date()}</span>
-                       </span>
-                     );
-                   })}
-                 </div>
-                 {/* Foreground grid for events and drop zones */}
-                 <div className="relative flex-1 grid grid-cols-7">
-                   {week.map((cell, dayIndex) => {
-                     const { visibleEvents, hiddenEventsCount, sortedEvents } = getDayVisibilityData(
-                       cell.date,
-                       layoutForThisWeek,
-                       hiddenIdsThisWeek,
-                       visibleCount
-                     );
+                    return (
+                      <span
+                        key={dayIndex}
+                        className={`not-last:border-e p-2 data-[today]:bg-blue-50 data-[outside-month]:bg-gray-50 data-[outside-month]:text-gray-400 overflow-hidden flex flex-col ${highlightClass}`}
+                        data-today={cell.isToday || undefined}
+                        data-outside-month={!cell.isCurrentMonth || undefined}
+                        data-potential-drop={isPotentialDropTarget || undefined}
+                      >
+                        <span className="text-sm font-medium">{cell.date.date()}</span>
+                      </span>
+                    );
+                  })}
+                </div>
+                {/* Foreground grid for events and drop zones */}
+                <div className="relative flex-1 grid grid-cols-7">
+                  {week.map((cell, dayIndex) => {
+                    const { visibleEvents, hiddenEventsCount, sortedEvents } = getDayVisibilityData(
+                      cell.date,
+                      layoutForThisWeek,
+                      hiddenIdsThisWeek,
+                      visibleCount
+                    );
 
                     return (
                       <DroppableCell key={dayIndex} cellDate={cell.date} ref={weekIndex === 0 && dayIndex === 0 ? contentRef : null}>
@@ -210,12 +210,12 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
                                 event={event}
                                 cellDate={cell.date} // Pass cellDate context
                                 renderEvent={() => ( // No args needed from DraggableEvent anymore
-                                    <EventItem
-                                        event={event}          // Event from map scope
-                                        cellDate={cell.date}   // Cell date from map scope
-                                        eventHeight={eventHeight}
-                                        eventGap={eventGap}
-                                    />
+                                  <EventItem
+                                    event={event}          // Event from map scope
+                                    cellDate={cell.date}   // Cell date from map scope
+                                    eventHeight={eventHeight}
+                                    eventGap={eventGap}
+                                  />
                                 )}
                                 eventHeight={eventHeight}
                                 eventGap={eventGap}
@@ -257,7 +257,7 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
             activeDragItemForOverlay={activeDragItem}
             eventHeight={eventHeight}
             eventGap={eventGap}
-            // isDragging and isProjection are implicitly false or irrelevant for overlay
+          // isDragging and isProjection are implicitly false or irrelevant for overlay
           />
         ) : null}
       </DragOverlay>

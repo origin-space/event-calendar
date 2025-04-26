@@ -67,24 +67,24 @@ export function getDaysInMonth(date: dayjs.Dayjs): CalendarCell[][] {
   const totalDaysInGrid = lastDayOfCalendar.diff(firstDayOfCalendar, 'day') + 1;
 
   if (totalDaysInGrid <= 0 || totalDaysInGrid % 7 !== 0) {
-      // Basic sanity check, should typically be 28, 35, or 42
-      console.warn("Calculated grid days seem unusual:", totalDaysInGrid);
-      return []
+    // Basic sanity check, should typically be 28, 35, or 42
+    console.warn("Calculated grid days seem unusual:", totalDaysInGrid);
+    return []
   }
 
   const weeksInGrid = totalDaysInGrid / 7; // Should be an integer
 
   for (let i = 0; i < weeksInGrid; i++) {
-      const week: CalendarCell[] = [];
-      for (let j = 0; j < 7; j++) {
-          week.push({
-              date: currentDay,
-              isCurrentMonth: currentDay.month() === date.month(),
-              isToday: currentDay.isSame(today, 'day'),
-          });
-          currentDay = currentDay.add(1, 'day');
-      }
-      monthGrid.push(week);
+    const week: CalendarCell[] = [];
+    for (let j = 0; j < 7; j++) {
+      week.push({
+        date: currentDay,
+        isCurrentMonth: currentDay.month() === date.month(),
+        isToday: currentDay.isSame(today, 'day'),
+      });
+      currentDay = currentDay.add(1, 'day');
+    }
+    monthGrid.push(week);
   }
   return monthGrid;
 }
@@ -204,7 +204,7 @@ export function calculateWeeklyEventLayout(
         positionFound = true;
         // Mark the slot as occupied for all relevant days
         currentDay = start.isBefore(viewStartDate) ? viewStartDate : start;
-         while (currentDay.isSameOrBefore(lastDayInWeek, 'day')) {
+        while (currentDay.isSameOrBefore(lastDayInWeek, 'day')) {
           const dateStr = currentDay.format('YYYY-MM-DD');
           if (!occupiedSlots.has(dateStr)) {
             occupiedSlots.set(dateStr, new Set());
@@ -239,7 +239,7 @@ export function calculateWeeklyEventLayout(
 export function getEventInfo(event: CalendarEventProps, cellDate: dayjs.Dayjs) {
   const start = dayjs(event.start);
   const end = dayjs(event.end);
-  const days = end.diff(start, 'day') + 1;  
+  const days = end.diff(start, 'day') + 1;
 
   // --- Visibility Check ---
   // An event segment should be shown if:
@@ -270,7 +270,7 @@ export function getEventInfo(event: CalendarEventProps, cellDate: dayjs.Dayjs) {
   const segmentStart = start.isBefore(startOfWeek) ? startOfWeek : start;
   const segmentEnd = end.isAfter(endOfWeek) ? endOfWeek : end;
 
-   // Calculate the start day for *this specific segment* relative to the week start
+  // Calculate the start day for *this specific segment* relative to the week start
   const segmentStartDayOfWeek = segmentStart.isSameOrAfter(startOfWeek) ? segmentStart.day() : 0;
 
   // Calculate the number of days this segment spans *within this week*
@@ -319,79 +319,79 @@ export function getEventInfo(event: CalendarEventProps, cellDate: dayjs.Dayjs) {
  * @returns An object containing { visibleEvents, hiddenEventsCount, sortedEvents }.
  */
 export function getDayVisibilityData(
-    cellDate: dayjs.Dayjs,
-    layoutForThisWeek: CalendarEventProps[],
-    hiddenIdsThisWeek: Set<string | number>,
-    visibleCount: number
+  cellDate: dayjs.Dayjs,
+  layoutForThisWeek: CalendarEventProps[],
+  hiddenIdsThisWeek: Set<string | number>,
+  visibleCount: number
 ): { visibleEvents: CalendarEventProps[]; hiddenEventsCount: number; sortedEvents: CalendarEventProps[] } {
 
-    const dayEvents = getEventsForDay(cellDate, layoutForThisWeek);
+  const dayEvents = getEventsForDay(cellDate, layoutForThisWeek);
 
-    // Return early if no events for the day
-    if (dayEvents.length === 0) {
-        return { visibleEvents: [], hiddenEventsCount: 0, sortedEvents: [] };
+  // Return early if no events for the day
+  if (dayEvents.length === 0) {
+    return { visibleEvents: [], hiddenEventsCount: 0, sortedEvents: [] };
+  }
+
+  // Calculate original overflow based on all events for the day (used for slicing logic)
+  const originalOverflowingItems = Math.max(0, dayEvents.length - visibleCount);
+
+  // Sort events for visibility/slicing, matching the layout logic:
+  //    - All-day events first.
+  //      - Within all-day: multi-day > single-day > start time > cell slot
+  //    - Then non-all-day events.
+  //      - Within non-all-day: start time > multi-day > single-day > cell slot
+  const sortedEvents = [...dayEvents].sort((a, b) => {
+    const aAllDay = a.allDay ?? false;
+    const bAllDay = b.allDay ?? false;
+
+    // Prioritize all-day events
+    if (aAllDay !== bAllDay) {
+      return aAllDay ? -1 : 1; // All-day comes first
     }
 
-    // Calculate original overflow based on all events for the day (used for slicing logic)
-    const originalOverflowingItems = Math.max(0, dayEvents.length - visibleCount);
+    const aIsMultiDay = dayjs(a.end).diff(dayjs(a.start), 'day') > 0;
+    const bIsMultiDay = dayjs(b.end).diff(dayjs(b.start), 'day') > 0;
+    const startDiff = dayjs(a.start).diff(dayjs(b.start)); // Compare full start time
+    const slotA = a.cellSlot ?? 0; // Use cellSlot as final tie-breaker
+    const slotB = b.cellSlot ?? 0;
 
-    // Sort events for visibility/slicing, matching the layout logic:
-    //    - All-day events first.
-    //      - Within all-day: multi-day > single-day > start time > cell slot
-    //    - Then non-all-day events.
-    //      - Within non-all-day: start time > multi-day > single-day > cell slot
-    const sortedEvents = [...dayEvents].sort((a, b) => {
-      const aAllDay = a.allDay ?? false;
-      const bAllDay = b.allDay ?? false;
-
-      // Prioritize all-day events
-      if (aAllDay !== bAllDay) {
-        return aAllDay ? -1 : 1; // All-day comes first
+    if (aAllDay) { // Both are all-day events
+      // Prioritize multi-day within all-day
+      if (aIsMultiDay !== bIsMultiDay) {
+        return aIsMultiDay ? -1 : 1;
       }
-
-      const aIsMultiDay = dayjs(a.end).diff(dayjs(a.start), 'day') > 0;
-      const bIsMultiDay = dayjs(b.end).diff(dayjs(b.start), 'day') > 0;
-      const startDiff = dayjs(a.start).diff(dayjs(b.start)); // Compare full start time
-      const slotA = a.cellSlot ?? 0; // Use cellSlot as final tie-breaker
-      const slotB = b.cellSlot ?? 0;
-
-      if (aAllDay) { // Both are all-day events
-        // Prioritize multi-day within all-day
-        if (aIsMultiDay !== bIsMultiDay) {
-          return aIsMultiDay ? -1 : 1;
-        }
-        // Then by start time
-        if (startDiff !== 0) {
-          return startDiff;
-        }
-        // Then by cell slot
-        return slotA - slotB;
-      } else { // Both are non-all-day events
-        // Prioritize start time within non-all-day
-        if (startDiff !== 0) {
-          return startDiff;
-        }
-        // Then prioritize multi-day
-        if (aIsMultiDay !== bIsMultiDay) {
-          return aIsMultiDay ? -1 : 1;
-        }
-        // Then by cell slot
-        return slotA - slotB;
+      // Then by start time
+      if (startDiff !== 0) {
+        return startDiff;
       }
-    });
+      // Then by cell slot
+      return slotA - slotB;
+    } else { // Both are non-all-day events
+      // Prioritize start time within non-all-day
+      if (startDiff !== 0) {
+        return startDiff;
+      }
+      // Then prioritize multi-day
+      if (aIsMultiDay !== bIsMultiDay) {
+        return aIsMultiDay ? -1 : 1;
+      }
+      // Then by cell slot
+      return slotA - slotB;
+    }
+  });
 
-    // Filter out events that are hidden elsewhere within the same week
-    const displayableEvents = sortedEvents.filter(event => !hiddenIdsThisWeek.has(event.id));
+  // Filter out events that are hidden elsewhere within the same week
+  const displayableEvents = sortedEvents.filter(event => !hiddenIdsThisWeek.has(event.id));
 
-    // Determine the actual visible events using the original slicing structure applied to *displayable* events
-    const visibleEvents = originalOverflowingItems > 0
-      ? displayableEvents.slice(0, visibleCount > 0 ? visibleCount - 1 : 0)
-      : displayableEvents;
+  // Determine the actual visible events using the original slicing structure applied to *displayable* events
+  const visibleEvents = originalOverflowingItems > 0
+    ? displayableEvents.slice(0, visibleCount > 0 ? visibleCount - 1 : 0)
+    : displayableEvents;
 
-    // Calculate the final count of hidden events for this day
-    const hiddenEventsCount = sortedEvents.length - visibleEvents.length;
+  // Calculate the final count of hidden events for this day
+  const hiddenEventsCount = sortedEvents.length - visibleEvents.length;
 
-    return { visibleEvents, hiddenEventsCount, sortedEvents };
+  return { visibleEvents, hiddenEventsCount, sortedEvents };
 }
 
 /**
@@ -402,28 +402,28 @@ export function getDayVisibilityData(
  * @returns A Set containing the IDs of events hidden somewhere in the week.
  */
 export function calculateHiddenIdsForWeek(
-    week: CalendarCell[],
-    layoutForThisWeek: CalendarEventProps[],
-    visibleCount: number
+  week: CalendarCell[],
+  layoutForThisWeek: CalendarEventProps[],
+  visibleCount: number
 ): Set<string | number> {
-    const hiddenIdsThisWeek = new Set<string | number>();
+  const hiddenIdsThisWeek = new Set<string | number>();
 
-    if (visibleCount <= 0 || !week || week.length === 0) {
-        return hiddenIdsThisWeek; // No hiding if no limit or invalid week
+  if (visibleCount <= 0 || !week || week.length === 0) {
+    return hiddenIdsThisWeek; // No hiding if no limit or invalid week
+  }
+
+  week.forEach(cellInWeek => {
+    const dayEventsForCheck = getEventsForDay(cellInWeek.date, layoutForThisWeek);
+
+    // No need to sort if checking length is enough, but sorting helps find *which* are hidden
+    if (dayEventsForCheck.length > visibleCount) {
+      const sortedEventsForCheck = [...dayEventsForCheck].sort((a, b) => (a.cellSlot ?? 0) - (b.cellSlot ?? 0));
+      // Slice to get the events that are actually hidden based on the limit
+      // Original logic showed (visibleCount - 1) items when overflowing
+      const hiddenOnThisDay = sortedEventsForCheck.slice(visibleCount - 1);
+      hiddenOnThisDay.forEach(event => hiddenIdsThisWeek.add(event.id));
     }
+  });
 
-    week.forEach(cellInWeek => {
-        const dayEventsForCheck = getEventsForDay(cellInWeek.date, layoutForThisWeek);
-
-        // No need to sort if checking length is enough, but sorting helps find *which* are hidden
-        if (dayEventsForCheck.length > visibleCount) {
-            const sortedEventsForCheck = [...dayEventsForCheck].sort((a, b) => (a.cellSlot ?? 0) - (b.cellSlot ?? 0));
-            // Slice to get the events that are actually hidden based on the limit
-            // Original logic showed (visibleCount - 1) items when overflowing
-            const hiddenOnThisDay = sortedEventsForCheck.slice(visibleCount - 1);
-            hiddenOnThisDay.forEach(event => hiddenIdsThisWeek.add(event.id));
-        }
-    });
-
-    return hiddenIdsThisWeek;
+  return hiddenIdsThisWeek;
 }

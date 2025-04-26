@@ -36,7 +36,7 @@ export function EventItem({
 
   // We need the detailed info for rendering. Assume 'show' is true if we reach here for grid, or always proceed for overlay.
   // Use optional chaining and default values for safety, although `show: false` case is handled above for non-overlays.
-  const info = eventInfoResult as Extract<ReturnType<typeof getEventInfo>, {show: true}>; // More specific type assertion
+  const info = eventInfoResult as Extract<ReturnType<typeof getEventInfo>, { show: true }>; // More specific type assertion
   const { width = '100%', days = 1, isStartDay = false, isMultiDay = false, multiWeek, show = true } = info ?? {};
 
   // #Reason: Calculate vertical position based on the event's assigned slot in the layout.
