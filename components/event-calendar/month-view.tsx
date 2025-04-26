@@ -20,8 +20,11 @@ import isBetween from 'dayjs/plugin/isBetween';
 dayjs.extend(isBetween);
 
 import { useEventVisibility } from "./hooks/use-event-visibility"
-import { type CalendarViewProps, CalendarEventProps } from './types/calendar'
-import { getDaysInMonth, getWeekDayNames, getEventInfo, calculateWeeklyEventLayout, getDayVisibilityData, calculateHiddenIdsForWeek } from './utils/calendar'
+import { type CalendarViewProps, CalendarEventProps, type CalendarCell } from './types/calendar'
+import { getDaysInMonth, getWeekDayNames, calculateWeeklyEventLayout, getDayVisibilityData, calculateHiddenIdsForWeek } from './utils/calendar'
+import { EventItem } from "./event-item"; // Import the new component
+
+// Removed the EventRenderProps interface and internal render helpers
 
 export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap = 2, onEventUpdate }: CalendarViewProps) {
   const weekDays = getWeekDayNames()
@@ -48,7 +51,7 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
     if (!weeks || weeks.length === 0) {
       return layouts;
     }
-    weeks.forEach(week => {
+    weeks.forEach((week: CalendarCell[]) => {
       if (week && week.length > 0 && week[0]?.date) {
         const weekStartDate = week[0].date.startOf('week');
         const layoutForWeek = calculateWeeklyEventLayout(events, weekStartDate);
@@ -62,190 +65,75 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
 
   const offsetRef = useRef<number | null>(null);
 
+  // --- DND Handlers --- 
   const handleDragStart = (event: DragStartEvent) => {
-    // Check the type from data, as id is now compound
     if (event.active.data.current?.type === 'event') {
-      setActiveDragItem(event.active) // Store the full active object
+      setActiveDragItem(event.active)
       setCurrentOverDate(null)
-      // Reset the offset when a new drag starts
       offsetRef.current = null;
     }
   }
 
   const handleDragOver = (event: DragOverEvent) => {
     const { over, active } = event
+    if (!over?.data?.current?.type || !active?.data?.current?.type) return;
 
-    // If we don't have a valid over target or active item, exit early
-    if (!over?.data?.current?.type || !active?.data?.current?.type) {
-      return;
-    }
-
-    // Calculate offset only once during a drag operation
-    if (offsetRef.current === null && over?.data?.current?.type === 'cell') {
+    if (offsetRef.current === null && over?.data?.current?.type === 'cell' && active.data.current?.type === 'event') {
       const startDate = active?.data?.current?.event.start;
       const grabDate = over?.data?.current?.date;
-
       if (startDate && grabDate) {
-        // Calculate the offset between dragDate and grabDate, ignoring time
-        const startDateObj = dayjs(startDate).startOf('day'); // Set to start of day
-        const grabDateObj = dayjs(grabDate).startOf('day');   // Set to start of day
-        offsetRef.current = grabDateObj.diff(startDateObj, 'day'); // Now calculates calendar day difference
+        const startDateObj = dayjs(startDate).startOf('day');
+        const grabDateObj = dayjs(grabDate).startOf('day');
+        offsetRef.current = grabDateObj.diff(startDateObj, 'day');
       }
     }
 
-    // Use the offset value in your drag logic
-    const currentOffset = offsetRef.current;
-
-    // Update the current over date for projection rendering
     if (over?.data?.current?.type === 'cell') {
       const overDate = dayjs(over.data.current.date);
-
-      // If we have an offset, subtract it from the over date
-      if (currentOffset !== null) {
-        // Subtract the offset from the over date
-        setCurrentOverDate(overDate.subtract(currentOffset, 'day'));
-      } else {
-        // If no offset yet, just use the over date as is
-        setCurrentOverDate(overDate);
-      }
+      const currentOffset = offsetRef.current;
+      setCurrentOverDate(currentOffset !== null ? overDate.subtract(currentOffset, 'day') : overDate);
     } else {
-      // If hovering over something else (like another event), clear the date
       setCurrentOverDate(null)
     }
   }
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
-
-    // Ensure we dropped onto a cell and were dragging an event
     if (over?.data?.current?.type === 'cell' && active.data.current?.type === 'event' && active.data.current?.event) {
       const originalEvent = active.data.current.event as CalendarEventProps
       const originalStartDate = dayjs(originalEvent.start)
       const dropDate = dayjs(over.data.current.date)
-
-      // Use the stored offset if available
-      const currentOffset = offsetRef.current;
-      const newStartDate = dropDate.subtract(currentOffset || 0, 'day')
-      const duration = dayjs(originalEvent.end).diff(originalEvent.start)
-      const newEndDate = newStartDate.add(duration)
+      const currentOffset = offsetRef.current ?? 0;
+      const newStartDate = dropDate.subtract(currentOffset, 'day')
 
       if (onEventUpdate && !newStartDate.isSame(originalStartDate, 'day')) {
-        onEventUpdate({
-          ...originalEvent,
-          start: newStartDate.toDate(),
-          end: newEndDate.toDate(),
-        })
+        const duration = dayjs(originalEvent.end).diff(originalEvent.start)
+        const newEndDate = newStartDate.add(duration)
+        onEventUpdate({ ...originalEvent, start: newStartDate.toDate(), end: newEndDate.toDate() })
       }
     }
-
-    // Reset all drag state
     setActiveDragItem(null)
     setCurrentOverDate(null)
-    offsetRef.current = null; // Reset the offset ref
+    offsetRef.current = null;
   }
 
-  // --- Render Logic ---
-  const renderEvent = (
-    event: CalendarEventProps,
-    cellDate: dayjs.Dayjs,
-    isProjection = false,
-    isDragging = false,
-    isOverlay = false,
-    activeDragItemForOverlay: Active | null = null // Add optional param for overlay context
-  ) => {
-    const { left, width, days = 1, isStartDay, isMultiDay, multiWeek, show } = getEventInfo(event, cellDate)
-    // Calculate topPosition normally for grid elements
-    const gridTopPosition = event.cellSlot ? event.cellSlot * (eventHeight + eventGap) : 0;
-
-    // Retrieve stored position for overlay, otherwise use grid calculation
-    const topPosition = isOverlay
-      ? activeDragItemForOverlay?.data.current?.initialTopPosition ?? 0
-      : gridTopPosition;
-
-    // Opacity only for the overlay item now, original is hidden via visibility
-    const opacityClass = isDragging && isOverlay ? 'opacity-75' : ''; // Example: slightly transparent overlay
-    // Projections should not block pointer events and be fully opaque
-    const pointerEventsClass = isProjection || isOverlay ? 'pointer-events-none' : ''; // Overlay shouldn't block pointer events either
-
-    // --- Conditional Rendering based on context ---
-    if (isOverlay) {
-      // Retrieve the stored daysInPreviousWeeks for the specific segment that was dragged
-      const daysInPrevWeeks = activeDragItemForOverlay?.data.current?.segmentDaysInPrevWeeks ?? 0;
-      console.log(daysInPrevWeeks);
-      // Render simplified version for DragOverlay
-      return (
-        <div
-          style={{
-            transform: `translateX(-${daysInPrevWeeks * 100}%)`,
-          }}
-        >
-          <div
-            style={{
-              height: `${eventHeight}px`,
-              width: `${100 * days}%`,
-              // Apply the retrieved topPosition
-              position: 'relative', // Ensure positioning context if needed by style below
-              top: `${topPosition}px` // Use standard top property
-            }} // Use fixed height
-            // Keep original overlay styles
-            className={`px-1 flex items-center text-xs bg-primary/30 text-primary-foreground rounded shadow-lg opacity-75 ${pointerEventsClass}`}
-            title={event.title}
-          >
-            <span className="truncate">{event.title}</span>
-          </div>
-        </div>
-      );
-    } else {
-      // Render standard version for the grid
-      return (
-        <div
-          key={isProjection ? `${event.id}-projection` : event.id}
-          style={{
-            '--event-left': left,
-            '--event-width': width,
-            '--event-top': `${gridTopPosition}px`, // Use grid-specific position
-            '--event-height': `${eventHeight}px`,
-          } as React.CSSProperties}
-          // Added transition classes for smooth width/position changes
-          className={`absolute left-[var(--event-left)] top-[var(--event-top)] w-[calc(var(--event-width)-1px)] data-[multiweek=next]:w-(--event-width) px-0.5 data-[multiweek=previous]:ps-0 data-[multiweek=next]:pe-0 data-[multiweek=both]:px-0 group-last/row:w-(--event-width) ${pointerEventsClass} transition-all duration-200 ease-out`} // Removed opacityClass here, handled by DraggableEvent visibility
-          title={event.title}
-          data-cell-slot={event.cellSlot}
-          data-start-day={isStartDay || undefined}
-          data-multiday={isMultiDay || undefined}
-          data-multiweek={multiWeek}
-          data-hidden={!show || undefined}
-          data-projection={isProjection || undefined}
-        >
-          {/* Inner content - structure remains similar */}
-          <div className="w-full h-[var(--event-height)] px-1 flex items-center text-xs bg-primary/30 text-primary-foreground rounded in-data-[multiweek=previous]:rounded-s-none in-data-[multiweek=next]:rounded-e-none in-data-[multiweek=both]:rounded-none in-data-[hidden=true]:sr-only">
-            <span className="truncate">{event.title}</span>
-          </div>
-        </div>
-      );
-    }
-  }
-
-  // Find the full event object being dragged
+  // --- Memoized Values --- 
   const activeDraggedEvent = useMemo(() => {
     if (!activeDragItem || activeDragItem.data.current?.type !== 'event') return null;
     const draggedEventObject = activeDragItem.data.current?.event as CalendarEventProps | undefined;
-    if (!draggedEventObject) return null;
-    return events.find(e => e.id === draggedEventObject.id);
+    return events.find(e => e.id === draggedEventObject?.id);
   }, [activeDragItem, events]);
 
-  // Calculate the potential drop range for highlighting cells
   const potentialDropRange = useMemo(() => {
     if (!activeDraggedEvent || !currentOverDate) return null;
-
     const originalStartDate = dayjs(activeDraggedEvent.start);
-    const newStartDate = currentOverDate; // Already offset-adjusted
+    const newStartDate = currentOverDate;
     const duration = dayjs(activeDraggedEvent.end).diff(originalStartDate);
     const newEndDate = newStartDate.add(duration);
-
     return { start: newStartDate, end: newEndDate };
   }, [activeDraggedEvent, currentOverDate]);
 
-
+  // --- Main JSX --- 
   return (
     <DndContext
       sensors={sensors}
@@ -269,39 +157,38 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
           {weeks.map((week, weekIndex) => {
             const weekStartDateStr = week[0]?.date?.startOf('week').format('YYYY-MM-DD');
             const layoutForThisWeek = weekStartDateStr ? weeklyLayouts.get(weekStartDateStr) || [] : [];
-            const hiddenIdsThisWeek = calculateHiddenIdsForWeek(week, layoutForThisWeek, visibleCount);
+            const hiddenIdsThisWeek = calculateHiddenIdsForWeek(week as CalendarCell[], layoutForThisWeek, visibleCount) as Set<string>; 
 
             return (
               <div key={weekIndex} className="flex flex-col relative not-last:border-b">
-                {/* Background grid cells */}
-                <div className="absolute inset-0 grid grid-cols-7" aria-hidden="true">
-                  {week.map((cell, dayIndex) => {
-                    // Check if this cell falls within the potential drop range
-                    const isPotentialDropTarget = potentialDropRange && cell.date.isBetween(potentialDropRange.start, potentialDropRange.end, 'day', '[]');
-                    const highlightClass = isPotentialDropTarget ? 'bg-gray-200' : ''; // Subtle gray highlight
+                 {/* Background grid cells */}
+                 <div className="absolute inset-0 grid grid-cols-7" aria-hidden="true">
+                   {week.map((cell, dayIndex) => {
+                     const isPotentialDropTarget = potentialDropRange && cell.date.isBetween(potentialDropRange.start, potentialDropRange.end, 'day', '[]');
+                     const highlightClass = isPotentialDropTarget ? 'bg-gray-200 transition-colors duration-150 ease-in-out' : '';
 
-                    return (
-                      <span
-                        key={dayIndex}
-                        className={`not-last:border-e p-2 data-[today]:bg-blue-50 data-[outside-month]:bg-gray-50 data-[outside-month]:text-gray-400 overflow-hidden flex flex-col ${highlightClass}`} // Add highlight class
-                        data-today={cell.isToday || undefined}
-                        data-outside-month={!cell.isCurrentMonth || undefined}
-                        data-potential-drop={isPotentialDropTarget || undefined} // Optional data attribute
-                      >
-                        <span className="text-sm font-medium">{cell.date.date()}</span>
-                      </span>
-                    );
-                  })}
-                </div>
-                {/* Foreground grid for events and drop zones */}
-                <div className="relative flex-1 grid grid-cols-7 mt-8" ref={weekIndex === 0 ? contentRef : null}>
-                  {week.map((cell, dayIndex) => {
-                    const { visibleEvents, hiddenEventsCount, sortedEvents } = getDayVisibilityData(
-                      cell.date,
-                      layoutForThisWeek,
-                      hiddenIdsThisWeek,
-                      visibleCount
-                    );
+                     return (
+                       <span
+                         key={dayIndex}
+                         className={`not-last:border-e p-2 data-[today]:bg-blue-50 data-[outside-month]:bg-gray-50 data-[outside-month]:text-gray-400 overflow-hidden flex flex-col ${highlightClass}`}
+                         data-today={cell.isToday || undefined}
+                         data-outside-month={!cell.isCurrentMonth || undefined}
+                         data-potential-drop={isPotentialDropTarget || undefined}
+                       >
+                         <span className="text-sm font-medium">{cell.date.date()}</span>
+                       </span>
+                     );
+                   })}
+                 </div>
+                 {/* Foreground grid for events and drop zones */}
+                 <div className="relative flex-1 grid grid-cols-7 mt-8" ref={weekIndex === 0 ? contentRef : null}>
+                   {week.map((cell, dayIndex) => {
+                     const { visibleEvents, hiddenEventsCount, sortedEvents } = getDayVisibilityData(
+                       cell.date,
+                       layoutForThisWeek,
+                       hiddenIdsThisWeek,
+                       visibleCount
+                     );
 
                     return (
                       <DroppableCell key={dayIndex} cellDate={cell.date}>
@@ -313,20 +200,31 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
                             {cell.date.format('dddd, MMMM D')}
                           </h2>
 
-                          {/* Render actual draggable events */}
+                          {/* Render actual draggable events using EventItem via render prop */}
                           {visibleEvents.map((event) => {
-                            // Check if the *event* (not segment) is being dragged
                             const isEventBeingDragged = activeDragItem?.data.current?.event?.id === event.id;
                             const uniqueSegmentKey = `${event.id}-${cell.date.format('YYYY-MM-DD')}`;
                             return (
                               <DraggableEvent
                                 key={uniqueSegmentKey}
                                 event={event}
-                                cellDate={cell.date}
-                                isBeingDragged={isEventBeingDragged}
-                                renderEvent={renderEvent}
-                                eventHeight={eventHeight} // Pass prop
-                                eventGap={eventGap} // Pass prop
+                                cellDate={cell.date} // Pass cellDate context
+                                isBeingDragged={isEventBeingDragged} // Pass status from MonthView
+                                // #Reason: Use inline function to render EventItem.
+                                // Removed spread props, explicitly pass isDragging.
+                                renderEvent={() => ( // No args needed from DraggableEvent anymore
+                                    <EventItem
+                                        // Removed {...renderProps}
+                                        event={event}          // Event from map scope
+                                        cellDate={cell.date}   // Cell date from map scope
+                                        isDragging={isEventBeingDragged} // Pass the correct dragging status
+                                        eventHeight={eventHeight}
+                                        eventGap={eventGap}
+                                        // isOverlay is implicitly false here
+                                    />
+                                )}
+                                eventHeight={eventHeight}
+                                eventGap={eventGap}
                               />
                             );
                           })}
@@ -334,14 +232,14 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
                           {/* Hidden events count */}
                           {hiddenEventsCount > 0 && (
                             <div
-                              // Revert to original positioning and styles for hidden count
                               style={{
                                 '--event-top': `${visibleCount * (eventHeight + eventGap)}px`,
                                 '--event-height': `${eventHeight}px`,
                               } as React.CSSProperties}
-                              className="absolute left-[var(--event-left)] top-[var(--event-top)] w-[calc((100%/7)-1px)] px-0.5 in-data-[multiweek=previous]:ps-0 in-data-[multiweek=next]:pe-0 in-data-[multiweek=both]:px-0"
+                              className="absolute left-0 top-[var(--event-top)] w-full px-0.5"
+                              aria-hidden="true"
                             >
-                              <button className="w-full h-[var(--event-height)] px-1 flex items-center text-xs bg-primary/30 text-primary-foreground rounded data-[multiweek=previous]:rounded-s-none data-[multiweek=next]:rounded-e-none data-[multiweek=both]:rounded-none" tabIndex={-1}>
+                              <button className="w-full h-[var(--event-height)] px-1 flex items-center text-xs bg-gray-200 text-gray-700 rounded cursor-default" tabIndex={-1}>
                                 <span className="truncate">+{hiddenEventsCount}<span className="max-sm:sr-only"> more</span></span>
                               </button>
                             </div>
@@ -356,18 +254,19 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
           })}
         </div>
       </div>
-      {/* Drag Overlay for the event being dragged */}
+      {/* Drag Overlay */}
       <DragOverlay dropAnimation={null}>
         {activeDragItem && activeDraggedEvent ? (
-          // Render the event using the overlay-specific logic in renderEvent
-          renderEvent(
-            activeDraggedEvent,
-            dayjs(activeDraggedEvent.start),
-            false,
-            true,
-            true,
-            activeDragItem
-          )
+          // Render EventItem directly for the overlay
+          <EventItem
+            event={activeDraggedEvent}
+            cellDate={dayjs(activeDraggedEvent.start)} // Provide a base cell date
+            isOverlay={true}
+            activeDragItemForOverlay={activeDragItem}
+            eventHeight={eventHeight}
+            eventGap={eventGap}
+            // isDragging and isProjection are implicitly false or irrelevant for overlay
+          />
         ) : null}
       </DragOverlay>
     </DndContext>

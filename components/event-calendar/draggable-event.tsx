@@ -7,7 +7,7 @@ interface DraggableEventProps {
   event: CalendarEventProps;
   cellDate: Dayjs;
   isBeingDragged: boolean;
-  renderEvent: (event: CalendarEventProps, cellDate: Dayjs, isProjection?: boolean, isDragging?: boolean) => React.ReactNode;
+  renderEvent: (event: CalendarEventProps, cellDate: Dayjs) => React.ReactNode;
   eventHeight: number;
   eventGap: number;
 }
@@ -36,13 +36,13 @@ export function DraggableEvent({ event, cellDate, isBeingDragged, renderEvent, e
   // Apply listeners and attributes
   // Apply transitions for opacity and scale on drag start/end
   const style: React.CSSProperties = isBeingDragged
-    ? { opacity: 0.2, transition: 'opacity 0.15s ease-out, transform 0.15s ease-out' } // Fade out and shrink slightly
-    : { opacity: 1, transition: 'opacity 0.15s ease-out, transform 0.15s ease-out' }; // Fade in and grow back
+    ? { opacity: 0.2, transition: 'opacity 0.15s ease-out' } // Simplified transition
+    : { opacity: 1, transition: 'opacity 0.15s ease-out' };
 
   return (
     <div ref={setNodeRef} {...listeners} {...attributes} style={style}>
       {/* Render event normally, isDragging is not needed here anymore for styling */}
-      {renderEvent(event, cellDate, false, false)}
+      {renderEvent(event, cellDate)}
     </div>
   );
 }
