@@ -14,8 +14,14 @@ import {
   pointerWithin,
   useDraggable, // Added useDraggable
   useDroppable, // Added useDroppable
+  DragOverlay,
+  closestCorners, // Import DragOverlay
 } from "@dnd-kit/core"
 import dayjs from "dayjs"
+import isBetween from 'dayjs/plugin/isBetween'; // Import isBetween plugin
+
+// Apply the plugin
+dayjs.extend(isBetween);
 
 import { useEventVisibility } from "./hooks/use-event-visibility"
 import { type CalendarViewProps, CalendarEventProps } from './types/calendar'
@@ -27,25 +33,41 @@ interface DraggableEventProps {
   cellDate: dayjs.Dayjs;
   isBeingDragged: boolean;
   renderEvent: (event: CalendarEventProps, cellDate: dayjs.Dayjs, isProjection?: boolean, isDragging?: boolean) => React.ReactNode;
+  eventHeight: number; // Added: Needed for position calculation
+  eventGap: number; // Added: Needed for position calculation
 }
 
-function DraggableEvent({ event, cellDate, isBeingDragged, renderEvent }: DraggableEventProps) {
+function DraggableEvent({ event, cellDate, isBeingDragged, renderEvent, eventHeight, eventGap }: DraggableEventProps) {
   const uniqueSegmentId = `${event.id}-${cellDate.format('YYYY-MM-DD')}`;
-  const { attributes, listeners, setNodeRef } = useDraggable({ // Removed 'transform'
-    id: uniqueSegmentId, // Use unique ID per segment
+
+  // Calculate topPosition based on the event's slot *before* drag starts
+  const initialTopPosition = event.cellSlot ? event.cellSlot * (eventHeight + eventGap) : 0;
+
+  // Calculate daysInPreviousWeeks for this specific segment
+  const segmentInfo = getEventInfo(event, cellDate);
+  const segmentDaysInPrevWeeks = segmentInfo.show ? segmentInfo.daysInPreviousWeeks : 0;
+
+  const { attributes, listeners, setNodeRef } = useDraggable({
+    id: uniqueSegmentId,
     data: {
-      event: event, // Keep the original event object
+      event: event,
       type: 'event',
-      dragDate: cellDate.toISOString(), // Store the specific date segment being dragged
+      dragDate: cellDate.toISOString(),
+      initialTopPosition: initialTopPosition,
+      segmentDaysInPrevWeeks: segmentDaysInPrevWeeks, // Store the segment-specific value
     },
   });
 
-  // Apply only listeners and attributes, no transform style
-  // Cursor style is handled by dnd-kit automatically based on listeners/attributes
+  // Apply listeners and attributes
+  // Apply transitions for opacity and scale on drag start/end
+  const style: React.CSSProperties = isBeingDragged
+    ? { opacity: 0.2, transition: 'opacity 0.15s ease-out, transform 0.15s ease-out' } // Fade out and shrink slightly
+    : { opacity: 1, transition: 'opacity 0.15s ease-out, transform 0.15s ease-out' }; // Fade in and grow back
+
   return (
-    <div ref={setNodeRef} {...listeners} {...attributes}>
-      {/* isDragging prop controls opacity in renderEvent */}
-      {renderEvent(event, cellDate, false, isBeingDragged)}
+    <div ref={setNodeRef} {...listeners} {...attributes} style={style}>
+      {/* Render event normally, isDragging is not needed here anymore for styling */}
+      {renderEvent(event, cellDate, false, false)}
     </div>
   );
 }
@@ -197,73 +219,105 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
   }
 
   // --- Render Logic ---
-  const renderEvent = (event: CalendarEventProps, cellDate: dayjs.Dayjs, isProjection = false, isDragging = false) => {
-    const { left, width, isStartDay, isMultiDay, multiWeek, show } = getEventInfo(event, cellDate)
-    const topPosition = event.cellSlot ? event.cellSlot * (eventHeight + eventGap) : 0;
-    // Apply opacity only to the original event segments being dragged, not the projection
-    const opacityClass = isDragging ? 'opacity-50' : '';
-    // Projections should not block pointer events and be fully opaque
-    const pointerEventsClass = isProjection ? 'pointer-events-none' : '';
+  // Added activeDragItemForOverlay: Active | null = null
+  const renderEvent = (
+    event: CalendarEventProps,
+    cellDate: dayjs.Dayjs,
+    isProjection = false,
+    isDragging = false,
+    isOverlay = false,
+    activeDragItemForOverlay: Active | null = null // Add optional param for overlay context
+  ) => {
+    const { left, width, days = 1, isStartDay, isMultiDay, multiWeek, show } = getEventInfo(event, cellDate)
+    // Calculate topPosition normally for grid elements
+    const gridTopPosition = event.cellSlot ? event.cellSlot * (eventHeight + eventGap) : 0;
 
-    return (
-      <div
-        key={isProjection ? `${event.id}-projection` : event.id}
-        style={{
-          '--event-left': left,
-          '--event-width': width,
-          '--event-top': `${topPosition}px`,
-          '--event-height': `${eventHeight}px`,
-        } as React.CSSProperties}
-        className={`absolute left-[var(--event-left)] top-[var(--event-top)] w-[calc(var(--event-width)-1px)] data-[multiweek=next]:w-(--event-width) px-0.5 data-[multiweek=previous]:ps-0 data-[multiweek=next]:pe-0 data-[multiweek=both]:px-0 group-last/row:w-(--event-width) ${opacityClass} ${pointerEventsClass}`}
-        title={event.title}
-        data-cell-slot={event.cellSlot}
+    // Retrieve stored position for overlay, otherwise use grid calculation
+    const topPosition = isOverlay
+        ? activeDragItemForOverlay?.data.current?.initialTopPosition ?? 0
+        : gridTopPosition;
+
+    // Opacity only for the overlay item now, original is hidden via visibility
+    const opacityClass = isDragging && isOverlay ? 'opacity-75' : ''; // Example: slightly transparent overlay
+    // Projections should not block pointer events and be fully opaque
+    const pointerEventsClass = isProjection || isOverlay ? 'pointer-events-none' : ''; // Overlay shouldn't block pointer events either
+
+    // --- Conditional Rendering based on context ---
+    if (isOverlay) {
+      // Retrieve the stored daysInPreviousWeeks for the specific segment that was dragged
+      const daysInPrevWeeks = activeDragItemForOverlay?.data.current?.segmentDaysInPrevWeeks ?? 0;
+      console.log(daysInPrevWeeks);
+      // Render simplified version for DragOverlay
+      return (
+        <div
+          style={{
+            transform: `translateX(-${daysInPrevWeeks * 100}%)`,
+          }}
+        >
+          <div
+            style={{
+              height: `${eventHeight}px`,
+              width: `${100*days}%`,
+              // Apply the retrieved topPosition
+              position: 'relative', // Ensure positioning context if needed by style below
+              top: `${topPosition}px` // Use standard top property
+            }} // Use fixed height
+            // Keep original overlay styles
+            className={`px-1 flex items-center text-xs bg-primary/30 text-primary-foreground rounded shadow-lg opacity-75 ${pointerEventsClass}`}
+            title={event.title}
+          >
+            <span className="truncate">{event.title}</span>
+          </div>
+        </div>
+      );
+    } else {
+      // Render standard version for the grid
+      return (
+        <div
+          key={isProjection ? `${event.id}-projection` : event.id}
+          style={{
+            '--event-left': left,
+            '--event-width': width,
+            '--event-top': `${gridTopPosition}px`, // Use grid-specific position
+            '--event-height': `${eventHeight}px`,
+          } as React.CSSProperties}
+          // Added transition classes for smooth width/position changes
+          className={`absolute left-[var(--event-left)] top-[var(--event-top)] w-[calc(var(--event-width)-1px)] data-[multiweek=next]:w-(--event-width) px-0.5 data-[multiweek=previous]:ps-0 data-[multiweek=next]:pe-0 data-[multiweek=both]:px-0 group-last/row:w-(--event-width) ${pointerEventsClass} transition-all duration-200 ease-out`} // Removed opacityClass here, handled by DraggableEvent visibility
+          title={event.title}
+          data-cell-slot={event.cellSlot}
         data-start-day={isStartDay || undefined}
         data-multiday={isMultiDay || undefined}
         data-multiweek={multiWeek}
         data-hidden={!show || undefined}
         data-projection={isProjection || undefined}
       >
-        {/* The button itself is not draggable, the wrapper DraggableEvent handles it */}
-        <div className="w-full h-[var(--event-height)] px-1 flex items-center text-xs bg-primary/30 text-primary-foreground rounded in-data-[multiweek=previous]:rounded-s-none in-data-[multiweek=next]:rounded-e-none in-data-[multiweek=both]:rounded-none in-data-[hidden=true]:sr-only">
-          <span className="truncate">{event.title}</span>
+          {/* Inner content - structure remains similar */}
+          <div className="w-full h-[var(--event-height)] px-1 flex items-center text-xs bg-primary/30 text-primary-foreground rounded in-data-[multiweek=previous]:rounded-s-none in-data-[multiweek=next]:rounded-e-none in-data-[multiweek=both]:rounded-none in-data-[hidden=true]:sr-only">
+            <span className="truncate">{event.title}</span>
+          </div>
         </div>
-      </div>
-    );
+      );
+    }
   }
 
+  // Find the full event object being dragged
   const activeDraggedEvent = useMemo(() => {
-    // Find event based on the event object stored in data
     if (!activeDragItem || activeDragItem.data.current?.type !== 'event') return null;
     const draggedEventObject = activeDragItem.data.current?.event as CalendarEventProps | undefined;
     if (!draggedEventObject) return null;
-    // Find the corresponding event in the main events array to ensure we have the latest state
     return events.find(e => e.id === draggedEventObject.id);
   }, [activeDragItem, events]);
 
-  const projectionEvent = useMemo(() => {    
+  // Calculate the potential drop range for highlighting cells
+  const potentialDropRange = useMemo(() => {
     if (!activeDraggedEvent || !currentOverDate) return null;
 
     const originalStartDate = dayjs(activeDraggedEvent.start);
-
-    // Since currentOverDate already has the offset subtracted in handleDragOver,
-    // we can use it directly as the new start date
-    const newStartDate = currentOverDate;
-
-    // Calculate the duration of the original event
+    const newStartDate = currentOverDate; // Already offset-adjusted
     const duration = dayjs(activeDraggedEvent.end).diff(originalStartDate);
-
-    // Add the duration to the new start date to get the new end date
     const newEndDate = newStartDate.add(duration);
 
-    // Placeholder for slot calculation - might need refinement
-    const projectedLayoutSlot = activeDraggedEvent.cellSlot ?? 0;
-
-    return {
-      ...activeDraggedEvent,
-      start: newStartDate.toDate(),
-      end: newEndDate.toDate(),
-      cellSlot: projectedLayoutSlot,
-    };
+    return { start: newStartDate, end: newEndDate };
   }, [activeDraggedEvent, currentOverDate]);
 
 
@@ -296,16 +350,23 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
               <div key={weekIndex} className="flex flex-col relative not-last:border-b">
                 {/* Background grid cells */}
                 <div className="absolute inset-0 grid grid-cols-7" aria-hidden="true">
-                  {week.map((cell, dayIndex) => (
-                    <span
-                      key={dayIndex}
-                      className="not-last:border-e p-2 data-[today]:bg-blue-50 data-[outside-month]:bg-gray-50 data-[outside-month]:text-gray-400 overflow-hidden flex flex-col"
-                      data-today={cell.isToday || undefined}
-                      data-outside-month={!cell.isCurrentMonth || undefined}
-                    >
-                      <span className="text-sm font-medium">{cell.date.date()}</span>
-                    </span>
-                  ))}
+                  {week.map((cell, dayIndex) => {
+                    // Check if this cell falls within the potential drop range
+                    const isPotentialDropTarget = potentialDropRange && cell.date.isBetween(potentialDropRange.start, potentialDropRange.end, 'day', '[]');
+                    const highlightClass = isPotentialDropTarget ? 'bg-gray-200' : ''; // Subtle gray highlight
+
+                    return (
+                      <span
+                        key={dayIndex}
+                        className={`not-last:border-e p-2 data-[today]:bg-blue-50 data-[outside-month]:bg-gray-50 data-[outside-month]:text-gray-400 overflow-hidden flex flex-col ${highlightClass}`} // Add highlight class
+                        data-today={cell.isToday || undefined}
+                        data-outside-month={!cell.isCurrentMonth || undefined}
+                        data-potential-drop={isPotentialDropTarget || undefined} // Optional data attribute
+                      >
+                        <span className="text-sm font-medium">{cell.date.date()}</span>
+                      </span>
+                    );
+                  })}
                 </div>
                 {/* Foreground grid for events and drop zones */}
                 <div className="relative flex-1 grid grid-cols-7 mt-8" ref={weekIndex === 0 ? contentRef : null}>
@@ -335,19 +396,17 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
                             const uniqueSegmentKey = `${event.id}-${cell.date.format('YYYY-MM-DD')}`;
                             return (
                               <DraggableEvent
-                                key={uniqueSegmentKey} // Use unique key per segment
+                                key={uniqueSegmentKey}
                                 event={event}
-                                cellDate={cell.date} // Pass the specific date of this cell segment
-                                isBeingDragged={isEventBeingDragged} // Pass flag if the event is dragged
-                                renderEvent={renderEvent} // Pass render function
+                                cellDate={cell.date}
+                                isBeingDragged={isEventBeingDragged}
+                                renderEvent={renderEvent}
+                                eventHeight={eventHeight} // Pass prop
+                                eventGap={eventGap} // Pass prop
                               />
                             );
                           })}
 
-                          {/* Render projection segment if this cell's date falls within the projection's range */}
-                          {projectionEvent && cell.date.isBetween(dayjs(projectionEvent.start), dayjs(projectionEvent.end), 'day', '[]') &&
-                            renderEvent(projectionEvent, cell.date, true) // Render projection segment (not draggable)
-                          }
                           {/* Hidden events count */}
                           {hiddenEventsCount > 0 && (
                             <div
@@ -378,7 +437,20 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
           })}
         </div>
       </div>
-      {/* No DragOverlay needed as per requirements */}
+      {/* Drag Overlay for the event being dragged */}
+      <DragOverlay dropAnimation={null}>
+        {activeDragItem && activeDraggedEvent ? (
+          // Render the event using the overlay-specific logic in renderEvent
+          renderEvent(
+            activeDraggedEvent,
+            dayjs(activeDraggedEvent.start), // Use original start date for rendering appearance
+            false, // Not a projection
+            true,  // Indicate it's being dragged
+            true,  // Indicate it's rendering in the overlay
+            activeDragItem // Pass activeDragItem to access initialTopPosition
+          )
+        ) : null}
+      </DragOverlay>
     </DndContext>
   );
 }

@@ -239,6 +239,7 @@ export function calculateWeeklyEventLayout(
 export function getEventInfo(event: CalendarEventProps, cellDate: dayjs.Dayjs) {
   const start = dayjs(event.start);
   const end = dayjs(event.end);
+  const days = end.diff(start, 'day') + 1;  
 
   // --- Visibility Check ---
   // An event segment should be shown if:
@@ -250,8 +251,15 @@ export function getEventInfo(event: CalendarEventProps, cellDate: dayjs.Dayjs) {
   const isNewWeekStart = cellDate.day() === dayjs().startOf('week').day(); // Locale-aware start of week
   const show = isStartDay || (isNewWeekStart && cellDate.isAfter(start, 'day') && cellDate.isSameOrBefore(end, 'day'));
 
+  // Calculate days in previous weeks
+  const currentWeekStart = cellDate.startOf('week');
+  let daysInPreviousWeeks = 0;
+  if (start.isBefore(currentWeekStart, 'day')) {
+    daysInPreviousWeeks = currentWeekStart.diff(start, 'day');
+  }
+
   if (!show) {
-    return { show: false }; // Don't render this segment visually
+    return { show: false };
   }
 
   // --- Calculate Width and Position ---
@@ -296,6 +304,8 @@ export function getEventInfo(event: CalendarEventProps, cellDate: dayjs.Dayjs) {
   return {
     left: left,
     width: width,
+    days,
+    daysInPreviousWeeks,
     isStartDay: cellDate.isSame(start, 'day'), // Still useful for potential styling
     isMultiDay: end.diff(start, 'day') > 0,
     multiWeek: multiWeek,
