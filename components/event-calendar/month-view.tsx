@@ -5,20 +5,16 @@ import {
   useSensor,
   useSensors,
   type DragStartEvent,
-  type DragMoveEvent,
   type DragOverEvent,
   type DragEndEvent,
   type Active,
-  type Over,
-  CollisionDetection,
   pointerWithin,
-  useDraggable, // Added useDraggable
-  useDroppable, // Added useDroppable
+  useDraggable,
+  useDroppable,
   DragOverlay,
-  closestCorners, // Import DragOverlay
 } from "@dnd-kit/core"
 import dayjs from "dayjs"
-import isBetween from 'dayjs/plugin/isBetween'; // Import isBetween plugin
+import isBetween from 'dayjs/plugin/isBetween';
 
 // Apply the plugin
 dayjs.extend(isBetween);
@@ -33,8 +29,8 @@ interface DraggableEventProps {
   cellDate: dayjs.Dayjs;
   isBeingDragged: boolean;
   renderEvent: (event: CalendarEventProps, cellDate: dayjs.Dayjs, isProjection?: boolean, isDragging?: boolean) => React.ReactNode;
-  eventHeight: number; // Added: Needed for position calculation
-  eventGap: number; // Added: Needed for position calculation
+  eventHeight: number;
+  eventGap: number;
 }
 
 function DraggableEvent({ event, cellDate, isBeingDragged, renderEvent, eventHeight, eventGap }: DraggableEventProps) {
@@ -54,7 +50,7 @@ function DraggableEvent({ event, cellDate, isBeingDragged, renderEvent, eventHei
       type: 'event',
       dragDate: cellDate.toISOString(),
       initialTopPosition: initialTopPosition,
-      segmentDaysInPrevWeeks: segmentDaysInPrevWeeks, // Store the segment-specific value
+      segmentDaysInPrevWeeks: segmentDaysInPrevWeeks,
     },
   });
 
@@ -437,11 +433,11 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
           // Render the event using the overlay-specific logic in renderEvent
           renderEvent(
             activeDraggedEvent,
-            dayjs(activeDraggedEvent.start), // Use original start date for rendering appearance
-            false, // Not a projection
-            true,  // Indicate it's being dragged
-            true,  // Indicate it's rendering in the overlay
-            activeDragItem // Pass activeDragItem to access initialTopPosition
+            dayjs(activeDraggedEvent.start),
+            false,
+            true,
+            true,
+            activeDragItem
           )
         ) : null}
       </DragOverlay>
