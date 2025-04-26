@@ -88,7 +88,7 @@ function DroppableCell({ cellDate, children }: DroppableCellProps) {
   });
 
   return (
-    <div ref={setNodeRef} className="h-full w-full">
+    <div ref={setNodeRef} className="group/row">
       {children}
     </div>
   );
@@ -380,8 +380,7 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
 
                     return (
                       <DroppableCell key={dayIndex} cellDate={cell.date}>
-                        {/* Removed 'relative' class */}
-                        <div className="h-full w-full group/row">
+                        <>
                           <h2 className="sr-only">
                             {sortedEvents.length === 0 ? "No events, " :
                             sortedEvents.length === 1 ? "1 event, " :
@@ -412,22 +411,17 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
                             <div
                               // Revert to original positioning and styles for hidden count
                               style={{
-                                '--event-top': `${visibleCount * (eventHeight + eventGap)}px`, // Use visibleCount from hook
+                                '--event-top': `${visibleCount * (eventHeight + eventGap)}px`,
                                 '--event-height': `${eventHeight}px`,
-                                // Original calculation used event info, but let's try simpler positioning first
-                                // '--event-left': left, // Assuming left is 0 for this button now
-                                // '--event-width': 'calc((100%/7) - 1px)', // Original width calc
                               } as React.CSSProperties}
-                              // Revert container classes
-                              className="absolute left-0 top-[var(--event-top)] w-[calc((100%/7)-1px)] px-0.5 pointer-events-none"
+                              className="absolute left-[var(--event-left)] top-[var(--event-top)] w-[calc((100%/7)-1px)] px-0.5 in-data-[multiweek=previous]:ps-0 in-data-[multiweek=next]:pe-0 in-data-[multiweek=both]:px-0"
                             >
-                              {/* Revert button classes */}
-                              <button className="w-full h-[var(--event-height)] px-1 flex items-center text-xs bg-primary/30 text-primary-foreground rounded" tabIndex={-1}>
+                              <button className="w-full h-[var(--event-height)] px-1 flex items-center text-xs bg-primary/30 text-primary-foreground rounded data-[multiweek=previous]:rounded-s-none data-[multiweek=next]:rounded-e-none data-[multiweek=both]:rounded-none" tabIndex={-1}>
                                 <span className="truncate">+{hiddenEventsCount}<span className="max-sm:sr-only"> more</span></span>
                               </button>
                             </div>
                           )}
-                        </div>
+                        </>
                       </DroppableCell>
                     );
                   })}
