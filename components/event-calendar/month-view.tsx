@@ -9,7 +9,6 @@ import {
   type DragEndEvent,
   type Active,
   pointerWithin,
-  useDroppable,
   DragOverlay,
 } from "@dnd-kit/core"
 import { DraggableEvent } from "./draggable-event"
@@ -24,7 +23,6 @@ import { useEventVisibility } from "./hooks/use-event-visibility"
 import { type CalendarViewProps, CalendarEventProps } from './types/calendar'
 import { getDaysInMonth, getWeekDayNames, getEventInfo, calculateWeeklyEventLayout, getDayVisibilityData, calculateHiddenIdsForWeek } from './utils/calendar'
 
-// --- MonthView Component ---
 export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap = 2, onEventUpdate }: CalendarViewProps) {
   const weekDays = getWeekDayNames()
   const weeks = getDaysInMonth(currentDate)
@@ -64,7 +62,6 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
 
   const offsetRef = useRef<number | null>(null);
 
-  // --- Drag and Drop Handlers ---
   const handleDragStart = (event: DragStartEvent) => {
     // Check the type from data, as id is now compound
     if (event.active.data.current?.type === 'event') {
@@ -148,7 +145,6 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
   }
 
   // --- Render Logic ---
-  // Added activeDragItemForOverlay: Active | null = null
   const renderEvent = (
     event: CalendarEventProps,
     cellDate: dayjs.Dayjs,
