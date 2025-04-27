@@ -16,28 +16,52 @@ import { DroppableCell } from "./droppable-cell"
 import dayjs from "dayjs"
 import isBetween from 'dayjs/plugin/isBetween';
 
-// Apply the plugin
 dayjs.extend(isBetween);
 
 import { useEventVisibility } from "./hooks/use-event-visibility"
 import { type CalendarViewProps, CalendarEventProps, type CalendarCell } from './types/calendar'
 import { getDaysInMonth, getWeekDayNames, calculateWeeklyEventLayout, getDayVisibilityData, calculateHiddenIdsForWeek } from './utils/calendar'
-import { EventItem } from "./event-item"; // Import the new component
+import { EventItem } from "./event-item";
 
-// Removed the EventRenderProps interface and internal render helpers
-
-export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap = 2, onEventUpdate }: CalendarViewProps) {
+export function MonthView({
+  currentDate,
+  events = [],
+  eventHeight = 24,
+  eventGap = 2,
+  onEventUpdate
+}: CalendarViewProps) {
+  
+  //Get weekday names for the header row
   const weekDays = getWeekDayNames()
+
+  // Generate the calendar grid structure based on current month
   const weeks = getDaysInMonth(currentDate)
 
+  // Calculate how many events can be displayed in each cell based on available height
   const { contentRef, getVisibleEventCount } = useEventVisibility({
-    eventHeight: eventHeight,
-    eventGap: eventGap,
+    eventHeight,
+    eventGap,
   });
 
+  // Get the number of events that can be displayed in each cell
+  const visibleCount = getVisibleEventCount();
+
+  /**
+   * Reference to track the day offset between where an event was grabbed and its start date
+   * This ensures events can be grabbed from any day they span and maintain proper positioning
+   */
+  const offsetRef = useRef<number | null>(null);
+
+  // Currently active item being dragged
   const [activeDragItem, setActiveDragItem] = useState<Active | null>(null)
+
+  // Current date the dragged item is hovering over (adjusted for grab offset)
   const [currentOverDate, setCurrentOverDate] = useState<dayjs.Dayjs | null>(null)
 
+  /**
+   * Configure drag sensors with activation constraints
+   * The distance constraint prevents accidental drags on small movements
+   */
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -46,11 +70,16 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
     })
   )
 
+  /**
+   * Calculate and memoize the layout of events for each week
+   * This organizes events into rows to prevent overlapping
+   */
   const weeklyLayouts = useMemo(() => {
     const layouts = new Map<string, CalendarEventProps[]>();
     if (!weeks || weeks.length === 0) {
       return layouts;
     }
+
     weeks.forEach((week: CalendarCell[]) => {
       if (week && week.length > 0 && week[0]?.date) {
         const weekStartDate = week[0].date.startOf('week');
@@ -58,14 +87,37 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
         layouts.set(weekStartDate.format('YYYY-MM-DD'), layoutForWeek);
       }
     });
+
     return layouts;
   }, [events, weeks]);
 
-  const visibleCount = getVisibleEventCount();
+  /**
+   * Find the full event object for the currently dragged item
+   * This provides access to all event properties during drag operations
+   */
+  const activeDraggedEvent = useMemo(() => {
+    if (!activeDragItem || activeDragItem.data.current?.type !== 'event') return null;
+    const draggedEventObject = activeDragItem.data.current?.event as CalendarEventProps | undefined;
+    return events.find(e => e.id === draggedEventObject?.id);
+  }, [activeDragItem, events]);
 
-  const offsetRef = useRef<number | null>(null);
+  /**
+   * Calculate the potential new date range for the dragged event
+   * This is used to highlight cells that would be covered by the event if dropped
+   */
+  const potentialDropRange = useMemo(() => {
+    if (!activeDraggedEvent || !currentOverDate) return null;
+    const originalStartDate = dayjs(activeDraggedEvent.start);
+    const newStartDate = currentOverDate;
+    const duration = dayjs(activeDraggedEvent.end).diff(originalStartDate);
+    const newEndDate = newStartDate.add(duration);
+    return { start: newStartDate, end: newEndDate };
+  }, [activeDraggedEvent, currentOverDate]);
 
-  // --- DND Handlers --- 
+  /**
+   * Handle the start of a drag operation
+   * Sets the active drag item and resets related state
+   */
   const handleDragStart = (event: DragStartEvent) => {
     if (event.active.data.current?.type === 'event') {
       setActiveDragItem(event.active)
@@ -74,14 +126,20 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
     }
   }
 
+  /**
+   * Handle drag over events to calculate potential drop positions
+   * Maintains the offset between where the event was grabbed and its start date
+   */
   const handleDragOver = (event: DragOverEvent) => {
     const { over, active } = event
 
-    if (!over || !active?.data?.current?.type) { 
-      setCurrentOverDate(null); 
+    // Clear current over date if not over a valid target
+    if (!over || !active?.data?.current?.type) {
+      setCurrentOverDate(null);
       if (!over) return;
     }
 
+    // Calculate the offset between grab point and event start date (only once per drag)
     if (offsetRef.current === null && over?.data?.current?.type === 'cell' && active.data.current?.type === 'event') {
       const startDate = active?.data?.current?.event.start;
       const grabDate = over?.data?.current?.date;
@@ -92,6 +150,7 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
       }
     }
 
+    // Update the current over date, adjusting for the grab offset
     if (over?.data?.current?.type === 'cell') {
       const overDate = dayjs(over.data.current.date);
       const currentOffset = offsetRef.current;
@@ -101,6 +160,10 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
     }
   }
 
+  /**
+   * Handle the end of a drag operation
+   * Updates the event with new dates if dropped on a valid target
+   */
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
     if (over?.data?.current?.type === 'cell' && active.data.current?.type === 'event' && active.data.current?.event) {
@@ -110,34 +173,20 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
       const currentOffset = offsetRef.current ?? 0;
       const newStartDate = dropDate.subtract(currentOffset, 'day')
 
+      // Only update if the date actually changed
       if (onEventUpdate && !newStartDate.isSame(originalStartDate, 'day')) {
         const duration = dayjs(originalEvent.end).diff(originalEvent.start)
         const newEndDate = newStartDate.add(duration)
         onEventUpdate({ ...originalEvent, start: newStartDate.toDate(), end: newEndDate.toDate() })
       }
     }
+
+    // Reset drag state
     setActiveDragItem(null)
     setCurrentOverDate(null)
     offsetRef.current = null;
   }
 
-  // --- Memoized Values --- 
-  const activeDraggedEvent = useMemo(() => {
-    if (!activeDragItem || activeDragItem.data.current?.type !== 'event') return null;
-    const draggedEventObject = activeDragItem.data.current?.event as CalendarEventProps | undefined;
-    return events.find(e => e.id === draggedEventObject?.id);
-  }, [activeDragItem, events]);
-
-  const potentialDropRange = useMemo(() => {
-    if (!activeDraggedEvent || !currentOverDate) return null;
-    const originalStartDate = dayjs(activeDraggedEvent.start);
-    const newStartDate = currentOverDate;
-    const duration = dayjs(activeDraggedEvent.end).diff(originalStartDate);
-    const newEndDate = newStartDate.add(duration);
-    return { start: newStartDate, end: newEndDate };
-  }, [activeDraggedEvent, currentOverDate]);
-
-  // --- Main JSX --- 
   return (
     <DndContext
       sensors={sensors}
@@ -169,12 +218,11 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
                 <div className="absolute inset-0 grid grid-cols-7" aria-hidden="true">
                   {week.map((cell, dayIndex) => {
                     const isPotentialDropTarget = potentialDropRange && cell.date.isBetween(potentialDropRange.start, potentialDropRange.end, 'day', '[]');
-                    const highlightClass = isPotentialDropTarget ? 'bg-gray-200 transition-colors duration-150 ease-in-out' : '';
 
                     return (
                       <span
                         key={dayIndex}
-                        className={`not-last:border-e p-2 data-[today]:bg-blue-50 data-[outside-month]:bg-gray-50 data-[outside-month]:text-gray-400 overflow-hidden flex flex-col ${highlightClass}`}
+                        className="not-last:border-e p-2 data-[today]:bg-blue-50 data-[outside-month]:bg-gray-50 data-[outside-month]:text-gray-400 overflow-hidden flex flex-col data-[potential-drop=true]:bg-gray-100"
                         data-today={cell.isToday || undefined}
                         data-outside-month={!cell.isCurrentMonth || undefined}
                         data-potential-drop={isPotentialDropTarget || undefined}
@@ -204,7 +252,6 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
                             {cell.date.format('dddd, MMMM D')}
                           </h2>
 
-                          {/* Render actual draggable events using EventItem via render prop */}
                           {visibleEvents.map((event) => {
                             const isEventBeingDragged = activeDragItem?.data.current?.event?.id === event.id;
                             const uniqueSegmentKey = `${event.id}-${cell.date.format('YYYY-MM-DD')}`;
@@ -212,11 +259,11 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
                               <DraggableEvent
                                 key={uniqueSegmentKey}
                                 event={event}
-                                cellDate={cell.date} // Pass cellDate context
-                                renderEvent={() => ( // No args needed from DraggableEvent anymore
+                                cellDate={cell.date}
+                                renderEvent={() => (
                                   <EventItem
-                                    event={event}          // Event from map scope
-                                    cellDate={cell.date}   // Cell date from map scope
+                                    event={event}
+                                    cellDate={cell.date}
                                     eventHeight={eventHeight}
                                     eventGap={eventGap}
                                   />
@@ -226,7 +273,7 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
                               />
                             );
                           })}
-                          {/* Hidden events count */}
+                          {/* More events button */}
                           {hiddenEventsCount > 0 && (
                             <div
                               style={{
@@ -253,15 +300,13 @@ export function MonthView({ currentDate, events = [], eventHeight = 24, eventGap
       {/* Drag Overlay */}
       <DragOverlay dropAnimation={null}>
         {activeDragItem && activeDraggedEvent ? (
-          // Render EventItem directly for the overlay
           <EventItem
             event={activeDraggedEvent}
-            cellDate={dayjs(activeDraggedEvent.start)} // Provide a base cell date
+            cellDate={dayjs(activeDraggedEvent.start)}
             isOverlay={true}
             activeDragItemForOverlay={activeDragItem}
             eventHeight={eventHeight}
             eventGap={eventGap}
-          // isDragging and isProjection are implicitly false or irrelevant for overlay
           />
         ) : null}
       </DragOverlay>
