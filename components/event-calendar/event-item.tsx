@@ -88,7 +88,7 @@ export function EventItem({
         '--event-top': `${gridTopPosition}px`,
         '--event-height': `${eventHeight}px`,
       } as React.CSSProperties}
-      className={`absolute top-[var(--event-top)] w-[calc(var(--event-width)-1px)] px-0.5 transition-all duration-200 ease-out z-10`}
+      className={`absolute top-[var(--event-top)] w-[calc(var(--event-width)-1px)] px-0.5 transition-[top] z-10`}
       title={event.title}
       data-testid={`event-item-${event.id}-${cellDate.format('YYYYMMDD')}`}
       data-cell-slot={event.cellSlot}
