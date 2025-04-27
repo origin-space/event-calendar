@@ -55,8 +55,8 @@ export function MonthView({
   // Currently active item being dragged
   const [activeDragItem, setActiveDragItem] = useState<Active | null>(null)
 
-  // Current date the dragged item is hovering over (adjusted for grab offset)
-  const [currentOverDate, setCurrentOverDate] = useState<dayjs.Dayjs | null>(null)
+  // Potential start date if the dragged item were dropped at the current hover position (adjusted for grab offset)
+  const [potentialStartDate, setPotentialStartDate] = useState<dayjs.Dayjs | null>(null)
 
   /**
    * Configure drag sensors with activation constraints
@@ -102,17 +102,19 @@ export function MonthView({
   }, [activeDragItem, events]);
 
   /**
-   * Calculate the potential new date range for the dragged event
-   * This is used to highlight cells that would be covered by the event if dropped
+   * Calculate the potential new date range for the dragged event based on the potential start date.
+   * This is used to highlight cells that would be covered by the event if dropped.
    */
   const potentialDropRange = useMemo(() => {
-    if (!activeDraggedEvent || !currentOverDate) return null;
+    if (!activeDraggedEvent || !potentialStartDate) return null;
+
     const originalStartDate = dayjs(activeDraggedEvent.start);
-    const newStartDate = currentOverDate;
-    const duration = dayjs(activeDraggedEvent.end).diff(originalStartDate);
-    const newEndDate = newStartDate.add(duration);
-    return { start: newStartDate, end: newEndDate };
-  }, [activeDraggedEvent, currentOverDate]);
+    const duration = dayjs(activeDraggedEvent.end).diff(originalStartDate); // Calculate duration
+    const newEndDate = potentialStartDate.add(duration); // Calculate potential end date
+
+    return { start: potentialStartDate, end: newEndDate };
+  }, [activeDraggedEvent, potentialStartDate]);
+
 
   /**
    * Handle the start of a drag operation
@@ -121,8 +123,8 @@ export function MonthView({
   const handleDragStart = (event: DragStartEvent) => {
     if (event.active.data.current?.type === 'event') {
       setActiveDragItem(event.active)
-      setCurrentOverDate(null)
-      offsetRef.current = null;
+      setPotentialStartDate(null) // Reset potential start date
+      offsetRef.current = null; // Reset offset
     }
   }
 
@@ -133,11 +135,14 @@ export function MonthView({
   const handleDragOver = (event: DragOverEvent) => {
     const { over, active } = event
 
-    // Clear current over date if not over a valid target
+    // Clear potential start date if not over a valid target or no active item
     if (!over || !active?.data?.current?.type) {
-      setCurrentOverDate(null);
-      if (!over) return;
+      setPotentialStartDate(null);
+      if (!over) return; // Exit if not hovering over anything
     }
+
+    // Ensure we are dragging an event
+    if (active.data.current?.type !== 'event') return;
 
     // Calculate the offset between grab point and event start date (only once per drag)
     if (offsetRef.current === null && over?.data?.current?.type === 'cell' && active.data.current?.type === 'event') {
@@ -150,13 +155,17 @@ export function MonthView({
       }
     }
 
-    // Update the current over date, adjusting for the grab offset
+    // Update the potential start date based on the cell being hovered over and the calculated offset
     if (over?.data?.current?.type === 'cell') {
-      const overDate = dayjs(over.data.current.date);
-      const currentOffset = offsetRef.current;
-      setCurrentOverDate(currentOffset !== null ? overDate.subtract(currentOffset, 'day') : overDate);
+      const overDate = dayjs(over.data.current.date).startOf('day'); // Date of the cell being hovered
+      const currentOffset = offsetRef.current; // Offset calculated above
+
+      // Calculate the potential start date by subtracting the offset from the hovered date
+      const newPotentialStartDate = currentOffset !== null ? overDate.subtract(currentOffset, 'day') : overDate;
+      setPotentialStartDate(newPotentialStartDate);
     } else {
-      setCurrentOverDate(null)
+      // If not hovering over a cell, clear the potential start date
+      setPotentialStartDate(null)
     }
   }
 
@@ -167,23 +176,27 @@ export function MonthView({
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
     if (over?.data?.current?.type === 'cell' && active.data.current?.type === 'event' && active.data.current?.event) {
-      const originalEvent = active.data.current.event as CalendarEventProps
-      const originalStartDate = dayjs(originalEvent.start)
-      const dropDate = dayjs(over.data.current.date)
-      const currentOffset = offsetRef.current ?? 0;
-      const newStartDate = dropDate.subtract(currentOffset, 'day')
+      const originalEvent = active.data.current.event as CalendarEventProps;
+      const originalStartDate = dayjs(originalEvent.start).startOf('day');
 
-      // Only update if the date actually changed
-      if (onEventUpdate && !newStartDate.isSame(originalStartDate, 'day')) {
-        const duration = dayjs(originalEvent.end).diff(originalEvent.start)
-        const newEndDate = newStartDate.add(duration)
-        onEventUpdate({ ...originalEvent, start: newStartDate.toDate(), end: newEndDate.toDate() })
+      // Use the final potentialStartDate calculated during dragOver
+      const finalPotentialStartDate = potentialStartDate;
+
+      // Only update if the drop target is valid and the date actually changed
+      if (onEventUpdate && finalPotentialStartDate && !finalPotentialStartDate.isSame(originalStartDate, 'day')) {
+        const duration = dayjs(originalEvent.end).diff(originalEvent.start); // Calculate duration
+        const newEndDate = finalPotentialStartDate.add(duration); // Calculate new end date
+        onEventUpdate({
+          ...originalEvent,
+          start: finalPotentialStartDate.toDate(),
+          end: newEndDate.toDate()
+        });
       }
     }
 
-    // Reset drag state
-    setActiveDragItem(null)
-    setCurrentOverDate(null)
+    // Reset drag state regardless of drop success
+    setActiveDragItem(null);
+    setPotentialStartDate(null);
     offsetRef.current = null;
   }
 
