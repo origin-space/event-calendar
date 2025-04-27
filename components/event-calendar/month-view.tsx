@@ -16,6 +16,7 @@ import { DroppableCell } from "./droppable-cell"
 import dayjs from "dayjs"
 import isBetween from 'dayjs/plugin/isBetween';
 
+// Extend dayjs with required plugins
 dayjs.extend(isBetween);
 
 import { useEventVisibility } from "./hooks/use-event-visibility"
@@ -96,8 +97,9 @@ export function MonthView({
    * This provides access to all event properties during drag operations
    */
   const activeDraggedEvent = useMemo(() => {
-    if (!activeDragItem || activeDragItem.data.current?.type !== 'event') return null;
-    const draggedEventObject = activeDragItem.data.current?.event as CalendarEventProps | undefined;
+    // Check for the presence of 'event' in data to identify the dragged item type
+    if (!activeDragItem || !activeDragItem.data.current?.event) return null;
+    const draggedEventObject = activeDragItem.data.current.event as CalendarEventProps | undefined;
     return events.find(e => e.id === draggedEventObject?.id);
   }, [activeDragItem, events]);
 
@@ -121,7 +123,7 @@ export function MonthView({
    * Sets the active drag item and resets related state
    */
   const handleDragStart = (event: DragStartEvent) => {
-    if (event.active.data.current?.type === 'event') {
+    if (event.active.data.current?.event) {
       setActiveDragItem(event.active)
       setPotentialStartDate(null) // Reset potential start date
       offsetRef.current = null; // Reset offset
@@ -135,19 +137,23 @@ export function MonthView({
   const handleDragOver = (event: DragOverEvent) => {
     const { over, active } = event
 
-    // Clear potential start date if not over a valid target or no active item
-    if (!over || !active?.data?.current?.type) {
-      setPotentialStartDate(null);
-      if (!over) return; // Exit if not hovering over anything
+    // Ensure we have an active item and it's an event (has 'event' property)
+    if (!active?.data?.current?.event) {
+      setPotentialStartDate(null); // Clear potential date if not dragging an event
+      return;
     }
 
-    // Ensure we are dragging an event
-    if (active.data.current?.type !== 'event') return;
+    // Clear potential start date if not hovering over a droppable cell (has 'date' property)
+    if (!over?.data?.current?.date) {
+      setPotentialStartDate(null);
+      return; // Exit if not hovering over a valid cell
+    }
 
     // Calculate the offset between grab point and event start date (only once per drag)
-    if (offsetRef.current === null && over?.data?.current?.type === 'cell' && active.data.current?.type === 'event') {
-      const startDate = active?.data?.current?.event.start;
-      const grabDate = over?.data?.current?.date;
+    // Check for 'date' on 'over' and 'event' on 'active'
+    if (offsetRef.current === null && over.data.current.date && active.data.current.event) {
+      const startDate = active.data.current.event.start;
+      const grabDate = over.data.current.date;
       if (startDate && grabDate) {
         const startDateObj = dayjs(startDate).startOf('day');
         const grabDateObj = dayjs(grabDate).startOf('day');
@@ -156,7 +162,8 @@ export function MonthView({
     }
 
     // Update the potential start date based on the cell being hovered over and the calculated offset
-    if (over?.data?.current?.type === 'cell') {
+    // Check for 'date' on 'over'
+    if (over.data.current.date) {
       const overDate = dayjs(over.data.current.date).startOf('day'); // Date of the cell being hovered
       const currentOffset = offsetRef.current; // Offset calculated above
 
@@ -175,7 +182,9 @@ export function MonthView({
    */
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
-    if (over?.data?.current?.type === 'cell' && active.data.current?.type === 'event' && active.data.current?.event) {
+
+    // Check if dropped over a cell ('date' property) and dragging an event ('event' property)
+    if (over?.data?.current?.date && active.data.current?.event) {
       const originalEvent = active.data.current.event as CalendarEventProps;
       const originalStartDate = dayjs(originalEvent.start).startOf('day');
 

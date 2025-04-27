@@ -25,7 +25,6 @@ export function DraggableEvent({ event, cellDate, renderEvent, eventHeight, even
     id: uniqueSegmentId,
     data: {
       event: event,
-      type: 'event',
       dragDate: cellDate.toISOString(),
       initialTopPosition: initialTopPosition,
       segmentDaysInPrevWeeks: segmentDaysInPrevWeeks,

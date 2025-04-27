@@ -10,8 +10,7 @@ export function DroppableCell({ cellDate, children, ref }: DroppableCellProps) {
   const { setNodeRef } = useDroppable({
     id: `cell-${cellDate.format('YYYY-MM-DD')}`,
     data: {
-      date: cellDate.toISOString(), // Store the date this cell represents
-      type: 'cell',
+      date: cellDate.toISOString(),
     },
   });
 
