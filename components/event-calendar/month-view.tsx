@@ -275,7 +275,6 @@ export function MonthView({
                           </h2>
 
                           {visibleEvents.map((event) => {
-                            const isEventBeingDragged = activeDragItem?.data.current?.event?.id === event.id;
                             const uniqueSegmentKey = `${event.id}-${cell.date.format('YYYY-MM-DD')}`;
                             return (
                               <DraggableEvent
