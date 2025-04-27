@@ -1,14 +1,15 @@
 import { useDroppable } from "@dnd-kit/core";
 import dayjs from "dayjs";
 interface DroppableCellProps {
+  id: string,
   cellDate: dayjs.Dayjs;
   children: React.ReactNode;
   ref: React.RefObject<HTMLDivElement> | null;
 }
 
-export function DroppableCell({ cellDate, children, ref }: DroppableCellProps) {
+export function DroppableCell({ id, cellDate, children, ref }: DroppableCellProps) {
   const { setNodeRef } = useDroppable({
-    id: `cell-${cellDate.format('YYYY-MM-DD')}`,
+    id,
     data: {
       date: cellDate.toISOString(),
     },

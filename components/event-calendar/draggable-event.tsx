@@ -4,6 +4,7 @@ import { useDraggable } from "@dnd-kit/core";
 import { Dayjs } from "dayjs";
 
 interface DraggableEventProps {
+  id: string,
   event: CalendarEventProps;
   cellDate: Dayjs;
   renderEvent: (event: CalendarEventProps, cellDate: Dayjs) => React.ReactNode;
@@ -11,9 +12,7 @@ interface DraggableEventProps {
   eventGap: number;
 }
 
-export function DraggableEvent({ event, cellDate, renderEvent, eventHeight, eventGap }: DraggableEventProps) {
-  const uniqueSegmentId = `${event.id}-${cellDate.format('YYYY-MM-DD')}`;
-
+export function DraggableEvent({ id, event, cellDate, renderEvent, eventHeight, eventGap }: DraggableEventProps) {
   // Calculate topPosition based on the event's slot *before* drag starts
   const initialTopPosition = event.cellSlot ? event.cellSlot * (eventHeight + eventGap) : 0;
 
@@ -22,7 +21,7 @@ export function DraggableEvent({ event, cellDate, renderEvent, eventHeight, even
   const segmentDaysInPrevWeeks = segmentInfo.show ? segmentInfo.daysInPreviousWeeks : 0;
 
   const { attributes, listeners, setNodeRef } = useDraggable({
-    id: uniqueSegmentId,
+    id,
     data: {
       event: event,
       dragDate: cellDate.toISOString(),

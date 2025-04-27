@@ -257,34 +257,42 @@ export function MonthView({
                 {/* Foreground grid for events and drop zones */}
                 <div className="relative flex-1 grid grid-cols-7">
                   {week.map((cell, dayIndex) => {
+                    const cellDate = cell.date;
                     const { visibleEvents, hiddenEventsCount, sortedEvents } = getDayVisibilityData(
-                      cell.date,
+                      cellDate,
                       layoutForThisWeek,
                       hiddenIdsThisWeek,
                       visibleCount
                     );
+                    const uniqueCellId = cellDate.format('YYYY-MM-DD') 
 
                     return (
-                      <DroppableCell key={dayIndex} cellDate={cell.date} ref={weekIndex === 0 && dayIndex === 0 ? contentRef : null}>
+                      <DroppableCell
+                        key={uniqueCellId}
+                        id={uniqueCellId}
+                        cellDate={cellDate}
+                        ref={weekIndex === 0 && dayIndex === 0 ? contentRef : null}
+                      >
                         <>
                           <h2 className="sr-only">
                             {sortedEvents.length === 0 ? "No events, " :
                               sortedEvents.length === 1 ? "1 event, " :
                                 `${sortedEvents.length} events, `}
-                            {cell.date.format('dddd, MMMM D')}
+                            {cellDate.format('dddd, MMMM D')}
                           </h2>
 
                           {visibleEvents.map((event) => {
-                            const uniqueSegmentKey = `${event.id}-${cell.date.format('YYYY-MM-DD')}`;
+                            const uniqueSegmentId = `${event.id}-${cellDate.format('YYYY-MM-DD')}`;
                             return (
                               <DraggableEvent
-                                key={uniqueSegmentKey}
+                                key={uniqueSegmentId}
+                                id={uniqueSegmentId}
                                 event={event}
-                                cellDate={cell.date}
+                                cellDate={cellDate}
                                 renderEvent={() => (
                                   <EventItem
                                     event={event}
-                                    cellDate={cell.date}
+                                    cellDate={cellDate}
                                     eventHeight={eventHeight}
                                     eventGap={eventGap}
                                   />
