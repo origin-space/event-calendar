@@ -127,9 +127,6 @@ export function EventItem({
       >
         {show ? (
           <button
-            aria-roledescription="draggable event" // More specific role description
-            aria-disabled={attributes['aria-disabled']} // Pass disabled state
-            aria-label={`${event.title} on ${cellDate.format('MMMM D')}${isMultiDay ? ' (multi-day)' : ''}`} // Better label
             className={cn(
               'w-full h-(--event-height) px-1 flex items-center text-xs bg-primary/30 text-primary-foreground rounded cursor-pointer',
               // Handle multi-week rounding
@@ -138,8 +135,6 @@ export function EventItem({
               multiWeek === 'both' && 'rounded-none',
               // Style when dragging
               isDragging && 'opacity-50',
-              // Ensure button is invisible if the outer div is (maintains layout)
-              !show && 'invisible'
             )}
           >
             <span className="truncate">{event.title}</span>
