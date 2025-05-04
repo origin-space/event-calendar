@@ -42,6 +42,7 @@ export function MonthView({
   const { contentRef, getVisibleEventCount } = useEventVisibility({
     eventHeight,
     eventGap,
+    currentDate, // Pass currentDate to the hook
   });
 
   // Get the number of events that can be displayed in each cell
