@@ -11,7 +11,7 @@ import {
   pointerWithin,
   DragOverlay,
 } from "@dnd-kit/core"
-import { DraggableEvent } from "./draggable-event"
+// DraggableEvent removed
 import { DroppableCell } from "./droppable-cell"
 import dayjs from "dayjs"
 import isBetween from 'dayjs/plugin/isBetween';
@@ -282,21 +282,13 @@ export function MonthView({
                           </h2>
 
                           {visibleEvents.map((event) => {
-                            const uniqueSegmentId = `${event.id}-${cellDate.format('YYYY-MM-DD')}`;
+                            const uniqueSegmentId = `${event.id}-${cellDate.format('YYYYMMDD')}`; // Use consistent format for ID
                             return (
-                              <DraggableEvent
+                              <EventItem
                                 key={uniqueSegmentId}
-                                id={uniqueSegmentId}
+                                uniqueId={uniqueSegmentId} // Pass the unique ID for dnd-kit
                                 event={event}
                                 cellDate={cellDate}
-                                renderEvent={() => (
-                                  <EventItem
-                                    event={event}
-                                    cellDate={cellDate}
-                                    eventHeight={eventHeight}
-                                    eventGap={eventGap}
-                                  />
-                                )}
                                 eventHeight={eventHeight}
                                 eventGap={eventGap}
                               />
@@ -330,8 +322,13 @@ export function MonthView({
       <DragOverlay dropAnimation={null}>
         {activeDragItem && activeDraggedEvent ? (
           <EventItem
+            // #Reason: Use the unique ID from the active drag item for the overlay instance.
+            // This ensures dnd-kit recognizes it correctly. The ID format matches the grid items.
+            uniqueId={activeDragItem.id as string}
             event={activeDraggedEvent}
-            cellDate={dayjs(activeDraggedEvent.start)}
+            // #Reason: Use the original drag date from the active item's data, not just the event start date,
+            // as the overlay needs to represent the specific segment being dragged.
+            cellDate={dayjs(activeDragItem.data.current?.dragDate)}
             isOverlay={true}
             activeDragItemForOverlay={activeDragItem}
             eventHeight={eventHeight}

@@ -252,10 +252,12 @@ export function getEventInfo(event: CalendarEventProps, cellDate: dayjs.Dayjs) {
   const show = isStartDay || (isNewWeekStart && cellDate.isAfter(start, 'day') && cellDate.isSameOrBefore(end, 'day'));
 
   // Calculate days in previous weeks
-  const currentWeekStart = cellDate.startOf('week');
+  // #Reason: Explicitly use startOf('day') to avoid potential time component issues affecting the diff calculation.
+  const currentWeekStart = cellDate.startOf('week').startOf('day');
+  const eventStartDate = start.startOf('day');
   let daysInPreviousWeeks = 0;
-  if (start.isBefore(currentWeekStart, 'day')) {
-    daysInPreviousWeeks = currentWeekStart.diff(start, 'day');
+  if (eventStartDate.isBefore(currentWeekStart)) { // isBefore check doesn't need 'day' unit when comparing startOf('day')
+    daysInPreviousWeeks = currentWeekStart.diff(eventStartDate, 'day');
   }
 
   if (!show) {
