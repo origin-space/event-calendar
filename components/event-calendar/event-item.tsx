@@ -74,21 +74,20 @@ export function EventItem({
       // The translation percentage is calculated relative to the total width of the event overlay.
       <div
         style={{
-          // Corrected calculation: (days before this segment's week / total event days) * 100
-          transform: `translateX(-${days > 0 ? (overlayDaysInPrevWeeks / days) * 100 : 0}%)`,
-          width: `${100 * days}%`, // Set width based on total event days
-        }}
-        className="px-0.5"
+          '--event-translate': `-${days > 0 ? (overlayDaysInPrevWeeks / days) * 100 : 0}%`,
+          '--event-width': `${100 * days}%`,
+          '--event-top': `${overlayTopPosition}px`,
+          '--event-height': `${eventHeight}px`,
+        } as React.CSSProperties}      
+        className="px-0.5 top-(--event-top) w-(--event-width) relative translate-x-(--event-translate)"
       >
         {/* #Reason: Inner div handles height, vertical position, and visual styling. */}
         <div
           style={{
             height: `${eventHeight}px`,
-            top: `${overlayTopPosition}px`, // Use initial captured top position
-            position: 'relative', // Position relative to the translated outer div
           }}
           className={cn(
-            'px-1 flex items-center text-xs bg-primary/30 text-primary-foreground rounded shadow-lg',
+            'h-(--event-height) px-1 flex items-center text-xs bg-primary/30 text-primary-foreground rounded shadow-lg',
             opacityClass,
             pointerEventsClass
           )}
@@ -122,7 +121,7 @@ export function EventItem({
         data-multiweek={multiWeek}
         aria-hidden={!show || undefined}      
         className={cn(
-          'absolute top-[var(--event-top)] w-[calc(var(--event-width)-1px)] px-0.5 transition-[top] z-10',
+          'absolute top-(--event-top) w-[calc(var(--event-width)-1px)] px-0.5 transition-[top] z-10',
           !show && 'sr-only'
         )}      
       >
@@ -132,7 +131,7 @@ export function EventItem({
             aria-disabled={attributes['aria-disabled']} // Pass disabled state
             aria-label={`${event.title} on ${cellDate.format('MMMM D')}${isMultiDay ? ' (multi-day)' : ''}`} // Better label
             className={cn(
-              'w-full h-[var(--event-height)] px-1 flex items-center text-xs bg-primary/30 text-primary-foreground rounded cursor-grab',
+              'w-full h-(--event-height) px-1 flex items-center text-xs bg-primary/30 text-primary-foreground rounded cursor-pointer',
               // Handle multi-week rounding
               multiWeek === 'previous' && 'rounded-s-none',
               multiWeek === 'next' && 'rounded-e-none',

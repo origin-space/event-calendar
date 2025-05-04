@@ -320,7 +320,7 @@ export function MonthView({
         </div>
       </div>
       {/* Drag Overlay */}
-      <DragOverlay dropAnimation={null}>
+      <DragOverlay dropAnimation={null} className="cursor-move">
         {activeDragItem && activeDraggedEvent ? (
           <EventItem
             // #Reason: Use the unique ID from the active drag item for the overlay instance.
