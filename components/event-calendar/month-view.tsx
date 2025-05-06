@@ -29,7 +29,9 @@ export function MonthView({
   events = [],
   eventHeight = 24,
   eventGap = 2,
-  onEventUpdate
+  onEventUpdate,
+  onEventSelect,
+  onEventCreate
 }: CalendarViewProps) {
   
   //Get weekday names for the header row

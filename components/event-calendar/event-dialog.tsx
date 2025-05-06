@@ -1,8 +1,8 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import dayjs from "dayjs"
 import { RiCalendarLine, RiDeleteBinLine } from "@remixicon/react"
-import { format, isBefore } from "date-fns"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -123,7 +123,7 @@ export function EventDialog({
         const value = `${formattedHour}:${formattedMinute}`
         // Use a fixed date to avoid unnecessary date object creations
         const date = new Date(2000, 0, 1, hour, minute)
-        const label = format(date, "h:mm a")
+        const label = dayjs(date).format("h:mm A")
         options.push({ value, label })
       }
     }
@@ -160,7 +160,7 @@ export function EventDialog({
     }
 
     // Validate that end date is not before start date
-    if (isBefore(end, start)) {
+    if (dayjs(end).isBefore(dayjs(start))) {
       setError("End date cannot be before start date")
       return
     }
@@ -286,7 +286,7 @@ export function EventDialog({
                         !startDate && "text-muted-foreground"
                       )}
                     >
-                      {startDate ? format(startDate, "PPP") : "Pick a date"}
+                      {startDate ? dayjs(startDate).format("PPP") : "Pick a date"}
                     </span>
                     <RiCalendarLine
                       size={16}
@@ -304,7 +304,7 @@ export function EventDialog({
                       if (date) {
                         setStartDate(date)
                         // If end date is before the new start date, update it to match the start date
-                        if (isBefore(endDate, date)) {
+                        if (dayjs(endDate).isBefore(dayjs(date))) {
                           setEndDate(date)
                         }
                         setError(null)
@@ -354,7 +354,7 @@ export function EventDialog({
                         !endDate && "text-muted-foreground"
                       )}
                     >
-                      {endDate ? format(endDate, "PPP") : "Pick a date"}
+                      {endDate ? dayjs(endDate).format("PPP") : "Pick a date"}
                     </span>
                     <RiCalendarLine
                       size={16}

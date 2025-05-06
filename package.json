@@ -28,7 +28,6 @@
     "autoprefixer": "^10.4.21",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "date-fns": "^4.1.0",
     "dayjs": "^1.11.13",
     "lucide-react": "^0.487.0",
     "next": "15.2.4",

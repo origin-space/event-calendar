@@ -226,7 +226,7 @@ export function EventCalendar({
   const renderView = () => {
     switch (view) {
       case 'month':
-        return <MonthView currentDate={currentDate} events={events} onEventUpdate={handleEventUpdate} />
+        return <MonthView currentDate={currentDate} events={events} onEventUpdate={handleEventUpdate} onEventSelect={handleEventSelect} onEventCreate={handleEventCreate} />
       case 'week':
         return <WeekView currentDate={currentDate} events={events} />
       case 'day':

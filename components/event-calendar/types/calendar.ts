@@ -14,6 +14,8 @@ export interface CalendarViewProps {
   eventHeight?: number
   eventGap?: number
   onEventUpdate?: (event: CalendarEventProps) => void
+  onEventSelect?: (event: CalendarEventProps) => void
+  onEventCreate?: (date: Date) => void
 }
 
 export interface CalendarProps {
