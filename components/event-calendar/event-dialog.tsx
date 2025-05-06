@@ -103,8 +103,6 @@ export function EventDialog({
       setLocation(event.location || "")
       setColor((event.color as EventColorProps) || "sky")
       setError(null) // Reset error when opening dialog
-    } else {
-      resetForm()
     }
   }, [event])
 
