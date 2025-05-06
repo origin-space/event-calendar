@@ -275,6 +275,7 @@ export function MonthView({
                         id={uniqueCellId}
                         cellDate={cellDate}
                         ref={weekIndex === 0 && dayIndex === 0 ? contentRef : null}
+                        onClick={() => onEventCreate?.(cellDate.toDate())}
                       >
                         <>
                           <h2 className="sr-only">

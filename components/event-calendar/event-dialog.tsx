@@ -286,7 +286,7 @@ export function EventDialog({
                         !startDate && "text-muted-foreground"
                       )}
                     >
-                      {startDate ? dayjs(startDate).format("PPP") : "Pick a date"}
+                      {startDate ? dayjs(startDate).format("MMM D, YYYY") : "Pick a date"}
                     </span>
                     <RiCalendarLine
                       size={16}
@@ -354,7 +354,7 @@ export function EventDialog({
                         !endDate && "text-muted-foreground"
                       )}
                     >
-                      {endDate ? dayjs(endDate).format("PPP") : "Pick a date"}
+                      {endDate ? dayjs(endDate).format("MMM D, YYYY") : "Pick a date"}
                     </span>
                     <RiCalendarLine
                       size={16}

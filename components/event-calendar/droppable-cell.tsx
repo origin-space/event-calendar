@@ -5,9 +5,10 @@ interface DroppableCellProps {
   cellDate: dayjs.Dayjs;
   children: React.ReactNode;
   ref: React.RefObject<HTMLDivElement> | null;
+  onClick?: () => void;
 }
 
-export function DroppableCell({ id, cellDate, children, ref }: DroppableCellProps) {
+export function DroppableCell({ id, cellDate, children, ref, onClick }: DroppableCellProps) {
   const { setNodeRef } = useDroppable({
     id,
     data: {
@@ -16,7 +17,7 @@ export function DroppableCell({ id, cellDate, children, ref }: DroppableCellProp
   });
 
   return (
-    <div ref={setNodeRef} className="group/row flex">
+    <div ref={setNodeRef} className="group/row flex" onClick={onClick}>
       <div className="relative flex-1 mt-8" ref={ref}>
         {children}
       </div>
