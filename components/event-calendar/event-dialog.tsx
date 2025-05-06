@@ -55,10 +55,11 @@ export function EventDialog({
   onSave,
   onDelete,
 }: EventDialogProps) {
+  const today = dayjs()
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
-  const [startDate, setStartDate] = useState<Date>(new Date())
-  const [endDate, setEndDate] = useState<Date>(new Date())
+  const [startDate, setStartDate] = useState<Date>(today.toDate())
+  const [endDate, setEndDate] = useState<Date>(today.toDate())
   const [startTime, setStartTime] = useState(`${DefaultStartHour.toString().padStart(2, "0")}:00`)
   const [endTime, setEndTime] = useState(`${DefaultEndHour.toString().padStart(2, "0")}:00`)
   const [allDay, setAllDay] = useState(false)
@@ -78,8 +79,8 @@ export function EventDialog({
       setTitle(event.title || "")
       setDescription(event.description || "")
 
-      const eventStartDate = new Date(event.start)
-      const eventEndDate = new Date(event.end)
+      const eventStartDate = dayjs(event.start).toDate();
+      const eventEndDate = dayjs(event.end).toDate();
 
       setStartDate(eventStartDate)
       setEndDate(eventEndDate)
@@ -102,17 +103,17 @@ export function EventDialog({
   }, [event])
 
   const resetForm = () => {
-    setTitle("")
-    setDescription("")
-    setStartDate(new Date())
-    setEndDate(new Date())
-    setStartTime(`${DefaultStartHour.toString().padStart(2, "0")}:00`)
-    setEndTime(`${DefaultEndHour.toString().padStart(2, "0")}:00`)
-    setAllDay(false)
-    setLocation("")
-    setColor("sky")
-    setError(null)
-  }
+    setTitle("");
+    setDescription("");
+    setStartDate(today.toDate());
+    setEndDate(today.toDate());  
+    setStartTime(`${DefaultStartHour.toString().padStart(2, "0")}:00`);
+    setEndTime(`${DefaultEndHour.toString().padStart(2, "0")}:00`);
+    setAllDay(false);
+    setLocation("");
+    setColor("sky");
+    setError(null);
+  };
 
   const formatTimeForInput = (date: Date) => {
     const hours = date.getHours().toString().padStart(2, "0")
@@ -128,9 +129,7 @@ export function EventDialog({
         const formattedHour = hour.toString().padStart(2, "0")
         const formattedMinute = minute.toString().padStart(2, "0")
         const value = `${formattedHour}:${formattedMinute}`
-        // Use a fixed date to avoid unnecessary date object creations
-        const date = new Date(2000, 0, 1, hour, minute)
-        const label = dayjs(date).format("h:mm A")
+        const label = dayjs().hour(hour).minute(minute).format("h:mm A") // Ensure this line is present
         options.push({ value, label })
       }
     }
@@ -138,8 +137,8 @@ export function EventDialog({
   }, []) // Empty dependency array ensures this only runs once
 
   const handleSave = () => {
-    const start = new Date(startDate)
-    const end = new Date(endDate)
+    const start = dayjs(startDate).toDate();
+    const end = dayjs(endDate).toDate();
 
     if (!allDay) {
       const [startHours = 0, startMinutes = 0] = startTime
