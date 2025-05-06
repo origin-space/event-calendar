@@ -59,8 +59,8 @@ export function EventDialog({
   const [description, setDescription] = useState("")
   const [startDate, setStartDate] = useState<Date>(new Date())
   const [endDate, setEndDate] = useState<Date>(new Date())
-  const [startTime, setStartTime] = useState(`${DefaultStartHour}:00`)
-  const [endTime, setEndTime] = useState(`${DefaultEndHour}:00`)
+  const [startTime, setStartTime] = useState(`${DefaultStartHour.toString().padStart(2, "0")}:00`)
+  const [endTime, setEndTime] = useState(`${DefaultEndHour.toString().padStart(2, "0")}:00`)
   const [allDay, setAllDay] = useState(false)
   const [location, setLocation] = useState("")
   const [color, setColor] = useState<EventColorProps>("sky")
@@ -78,13 +78,20 @@ export function EventDialog({
       setTitle(event.title || "")
       setDescription(event.description || "")
 
-      const start = new Date(event.start)
-      const end = new Date(event.end)
+      const eventStartDate = new Date(event.start)
+      const eventEndDate = new Date(event.end)
 
-      setStartDate(start)
-      setEndDate(end)
-      setStartTime(formatTimeForInput(start))
-      setEndTime(formatTimeForInput(end))
+      setStartDate(eventStartDate)
+      setEndDate(eventEndDate)
+
+      if (event.id) { // Existing event: use its actual time
+        setStartTime(formatTimeForInput(eventStartDate))
+        setEndTime(formatTimeForInput(eventEndDate))
+      } else { // New event: use default hours
+        setStartTime(`${DefaultStartHour.toString().padStart(2, "0")}:00`)
+        setEndTime(`${DefaultEndHour.toString().padStart(2, "0")}:00`)
+      }
+
       setAllDay(event.allDay || false)
       setLocation(event.location || "")
       setColor((event.color as EventColorProps) || "sky")
@@ -99,8 +106,8 @@ export function EventDialog({
     setDescription("")
     setStartDate(new Date())
     setEndDate(new Date())
-    setStartTime(`${DefaultStartHour}:00`)
-    setEndTime(`${DefaultEndHour}:00`)
+    setStartTime(`${DefaultStartHour.toString().padStart(2, "0")}:00`)
+    setEndTime(`${DefaultEndHour.toString().padStart(2, "0")}:00`)
     setAllDay(false)
     setLocation("")
     setColor("sky")
