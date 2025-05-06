@@ -129,7 +129,10 @@ export function EventItem({
       >
         {show ? (
           <button
-            onClick={() => onEventSelect?.(event)}
+            onClick={(e: React.MouseEvent) => {
+              e.stopPropagation();
+              onEventSelect?.(event);
+            }}
             className={cn(
               'w-full h-(--event-height) px-1 flex items-center text-xs bg-primary/30 text-primary-foreground rounded cursor-pointer',
               // Handle multi-week rounding
