@@ -69,6 +69,12 @@ export function EventDialog({
   const [startDateOpen, setStartDateOpen] = useState(false)
   const [endDateOpen, setEndDateOpen] = useState(false)
 
+  const formatTimeForInput = (date: Date) => {
+    const hours = date.getHours().toString().padStart(2, "0")
+    const minutes = Math.floor(date.getMinutes() / 15) * 15
+    return `${hours}:${minutes.toString().padStart(2, "0")}`
+  }
+
   // Debug log to check what event is being passed
   useEffect(() => {
     console.log("EventDialog received event:", event)
@@ -102,6 +108,36 @@ export function EventDialog({
     }
   }, [event])
 
+  useEffect(() => {
+    if (allDay || !startDate || !endDate || !startTime || !endTime) {
+      return; 
+    }
+
+    const [newStartHours, newStartMinutes] = startTime.split(":").map(Number);
+    if (isNaN(newStartHours) || isNaN(newStartMinutes)) return;
+
+    const newFullStartDateTime = dayjs(startDate)
+      .hour(newStartHours)
+      .minute(newStartMinutes)
+      .second(0)
+      .millisecond(0);
+
+    const [currentEndHours, currentEndMinutes] = endTime.split(":").map(Number);
+    if (isNaN(currentEndHours) || isNaN(currentEndMinutes)) return;
+    
+    const currentFullEndDateTime = dayjs(endDate)
+      .hour(currentEndHours)
+      .minute(currentEndMinutes)
+      .second(0)
+      .millisecond(0);
+
+    if (newFullStartDateTime.isSame(currentFullEndDateTime) || newFullStartDateTime.isAfter(currentFullEndDateTime)) {
+      const newCalculatedEndDateTime = newFullStartDateTime.add(15, 'minute');
+      setEndDate(newCalculatedEndDateTime.toDate());
+      setEndTime(formatTimeForInput(newCalculatedEndDateTime.toDate()));
+    }
+  }, [startTime, startDate, endTime, endDate, allDay, formatTimeForInput]);
+
   const resetForm = () => {
     setTitle("");
     setDescription("");
@@ -114,12 +150,6 @@ export function EventDialog({
     setColor("sky");
     setError(null);
   };
-
-  const formatTimeForInput = (date: Date) => {
-    const hours = date.getHours().toString().padStart(2, "0")
-    const minutes = Math.floor(date.getMinutes() / 15) * 15
-    return `${hours}:${minutes.toString().padStart(2, "0")}`
-  }
 
   // Memoize time options so they're only calculated once
   const timeOptions = useMemo(() => {
@@ -135,6 +165,34 @@ export function EventDialog({
     }
     return options
   }, []) // Empty dependency array ensures this only runs once
+
+  const endTimeOptions = useMemo(() => {
+    if (!startDate || !startTime || !endDate) {
+      // If essential date/time info is missing, return all options enabled
+      return timeOptions.map(opt => ({ ...opt, disabled: false }));
+    }
+
+    const [startHours, startMinutes] = startTime.split(':').map(Number);
+    // If parsing fails, return all options enabled as a fallback
+    if (isNaN(startHours) || isNaN(startMinutes)) {
+      return timeOptions.map(opt => ({ ...opt, disabled: false }));
+    }
+
+    const fullStartDateTime = dayjs(startDate).hour(startHours).minute(startMinutes);
+
+    return timeOptions.map(option => {
+      const [optionHour, optionMinute] = option.value.split(':').map(Number);
+      let isDisabled = false;
+
+      // Only apply disabling logic if the start and end dates are the same day
+      if (dayjs(startDate).isSame(dayjs(endDate), 'day')) {
+        const potentialEndTimeOnSameDay = dayjs(startDate).hour(optionHour).minute(optionMinute);
+        isDisabled = potentialEndTimeOnSameDay.isBefore(fullStartDateTime) || potentialEndTimeOnSameDay.isSame(fullStartDateTime);
+      }
+
+      return { ...option, disabled: isDisabled };
+    });
+  }, [startTime, startDate, endDate, timeOptions]);
 
   const handleSave = () => {
     const start = dayjs(startDate).toDate();
@@ -395,8 +453,8 @@ export function EventDialog({
                     <SelectValue placeholder="Select time" />
                   </SelectTrigger>
                   <SelectContent>
-                    {timeOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
+                    {endTimeOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value} disabled={option.disabled}>
                         {option.label}
                       </SelectItem>
                     ))}
