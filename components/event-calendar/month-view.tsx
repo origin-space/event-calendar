@@ -294,6 +294,7 @@ export function MonthView({
                                 cellDate={cellDate}
                                 eventHeight={eventHeight}
                                 eventGap={eventGap}
+                                onEventSelect={onEventSelect}
                               />
                             );
                           })}

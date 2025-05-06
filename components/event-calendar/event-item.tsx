@@ -13,6 +13,7 @@ interface EventItemProps {
   eventHeight: number;
   eventGap: number;
   uniqueId: string; // Unique ID for dnd-kit, passed from parent
+  onEventSelect?: (event: CalendarEventProps) => void;
 }
 
 /**
@@ -28,6 +29,7 @@ export function EventItem({
   eventHeight,
   eventGap,
   uniqueId, // Use the unique ID passed from the parent
+  onEventSelect,
 }: EventItemProps): React.ReactNode {
   // #Reason: Calculate positioning, visibility, and multi-week details for the event segment on this specific cellDate.
   const eventInfoResult = getEventInfo(event, cellDate);  
@@ -127,6 +129,7 @@ export function EventItem({
       >
         {show ? (
           <button
+            onClick={() => onEventSelect?.(event)}
             className={cn(
               'w-full h-(--event-height) px-1 flex items-center text-xs bg-primary/30 text-primary-foreground rounded cursor-pointer',
               // Handle multi-week rounding
