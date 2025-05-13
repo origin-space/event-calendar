@@ -11,7 +11,7 @@ import {
   pointerWithin,
   DragOverlay,
 } from "@dnd-kit/core"
-// DraggableEvent removed
+
 import { DroppableCell } from "./droppable-cell"
 import dayjs from "dayjs"
 import isBetween from 'dayjs/plugin/isBetween';
