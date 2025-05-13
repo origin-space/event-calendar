@@ -145,32 +145,35 @@ export function EventItem({
   return (
     <div
       ref={setNodeRef}
-      {...listeners}
-      {...attributes}
-      style={rootStyle}
-      className={rootClasses}
-      data-cell-slot={!isWeekTimed ? event.cellSlot : undefined}
-      data-start-day={!isWeekTimed ? (isStartDay || undefined) : undefined}
-      data-multiday={!isWeekTimed ? (isMultiDay || undefined) : undefined}
-      data-multiweek={!isWeekTimed ? multiWeek : undefined}
-      aria-hidden={!show || undefined}
+      {...(show && !isOverlay ? listeners : {})}
+      draggable
     >
-      <button
-        onClick={(e: React.MouseEvent) => {
-          e.stopPropagation();
-          onEventSelect?.(event);
-        }}
-        className={cn(
-          'w-full px-1 flex items-center text-xs bg-primary/30 text-primary-foreground rounded cursor-pointer',
-          isWeekTimed ? 'h-full' : `h-(--event-height)`,
-          !isWeekTimed && multiWeek === 'previous' && 'rounded-s-none',
-          !isWeekTimed && multiWeek === 'next' && 'rounded-e-none',
-          !isWeekTimed && multiWeek === 'both' && 'rounded-none',
-          isDragging && 'opacity-50'
-        )}
+      <div
+        style={rootStyle}
+        className={rootClasses}
+        data-cell-slot={!isWeekTimed ? event.cellSlot : undefined}
+        data-start-day={!isWeekTimed ? (isStartDay || undefined) : undefined}
+        data-multiday={!isWeekTimed ? (isMultiDay || undefined) : undefined}
+        data-multiweek={!isWeekTimed ? multiWeek : undefined}
+        aria-hidden={!show || undefined}
       >
-        <span className="truncate">{event.title}</span>
-      </button>
+        <button
+          onClick={(e: React.MouseEvent) => {
+            e.stopPropagation();
+            onEventSelect?.(event);
+          }}
+          className={cn(
+            'w-full px-1 flex items-center text-xs bg-primary/30 text-primary-foreground rounded cursor-pointer',
+            isWeekTimed ? 'h-full' : `h-(--event-height)`,
+            !isWeekTimed && multiWeek === 'previous' && 'rounded-s-none',
+            !isWeekTimed && multiWeek === 'next' && 'rounded-e-none',
+            !isWeekTimed && multiWeek === 'both' && 'rounded-none',
+            isDragging && 'opacity-50'
+          )}
+        >
+          <span className="truncate">{event.title}</span>
+        </button>
+      </div>
     </div>
   );
 }
