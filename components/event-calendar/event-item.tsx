@@ -94,13 +94,13 @@ export function EventItem({
         } as React.CSSProperties}
         className={cn(
           "px-0.5 relative",
-          "top-[var(--event-top)] w-[var(--event-width)] translate-x-[var(--event-translate)]"
+          "top-(--event-top) w-(--event-width) translate-x-(--event-translate)"
         )}
       >
         <div
           className={cn(
             'px-1 flex items-center text-xs bg-primary/30 text-primary-foreground rounded shadow-lg',
-            `h-[var(--event-height)]`,
+            `h-(--event-height)`,
             opacityClass,
             pointerEventsClass
           )}
@@ -127,7 +127,7 @@ export function EventItem({
     rootStyle = directStylesFromProps || {};
     rootClasses = cn(
       'absolute px-0.5',
-      'top-[var(--event-top)] left-[var(--event-left)] w-[var(--event-width)] h-[var(--event-height)]'
+      'top-(--event-top) left-(--event-left) w-(--event-width) h-(--event-height)'
     );
   } else {
     rootStyle = {
@@ -138,7 +138,7 @@ export function EventItem({
     };
     rootClasses = cn(
       'absolute px-0.5 transition-[top]',
-      'top-[var(--event-top)] w-[calc(var(--event-width)-1px)]'
+      'top-(--event-top) w-[calc(var(--event-width)-1px)]'
     );
   }
 
@@ -162,7 +162,7 @@ export function EventItem({
         }}
         className={cn(
           'w-full px-1 flex items-center text-xs bg-primary/30 text-primary-foreground rounded cursor-pointer',
-          isWeekTimed ? 'h-full' : `h-[var(--event-height)]`,
+          isWeekTimed ? 'h-full' : `h-(--event-height)`,
           !isWeekTimed && multiWeek === 'previous' && 'rounded-s-none',
           !isWeekTimed && multiWeek === 'next' && 'rounded-e-none',
           !isWeekTimed && multiWeek === 'both' && 'rounded-none',

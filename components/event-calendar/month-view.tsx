@@ -315,9 +315,9 @@ export function MonthView({
                                 '--event-top': `${(visibleCount - 1) * (eventHeight + eventGap)}px`,
                                 '--event-height': `${eventHeight}px`,
                               } as React.CSSProperties}
-                              className="absolute left-0 top-[var(--event-top)] w-full px-0.5"
+                              className="absolute left-0 top-(--event-top) w-full px-0.5"
                             >
-                              <button className="w-full h-[var(--event-height)] px-1 flex items-center text-xs bg-gray-200 text-gray-700 rounded cursor-default">
+                              <button className="w-full h-(--event-height) px-1 flex items-center text-xs bg-gray-200 text-gray-700 rounded cursor-default">
                                 <span className="truncate">+{hiddenEventsCount}<span className="max-sm:sr-only"> more</span></span>
                               </button>
                             </div>
