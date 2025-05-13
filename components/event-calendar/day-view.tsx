@@ -5,7 +5,7 @@ export function DayView({ currentDate }: CalendarViewProps) {
   const hours = getHours()
 
   return (
-    <div data-slot="day-view" className="flex h-full min-h-screen flex-col">
+    <div data-slot="day-view">
       {/* Day header */}
       <div className="border-b p-4 text-center">
         <div className="text-2xl font-semibold">

@@ -173,12 +173,20 @@ export function EventCalendar({
     }
   }
 
-  const handleEventUpdate = (updatedEvent: CalendarEventProps) => {
-    onEventUpdate?.(updatedEvent)
+  const handleEventUpdate = (eventToUpdate: CalendarEventProps) => {
+    const modifiedEvent = { ...eventToUpdate };
+
+    // If the event is not an all-day event, ensure cellSlot is undefined.
+    // cellSlot is primarily for MonthView or all-day sections for row stacking.
+    if (!modifiedEvent.allDay) {
+      delete modifiedEvent.cellSlot;
+    }
+
+    onEventUpdate?.(modifiedEvent);
 
     // Show toast notification when an event is updated via drag and drop
-    toast(`Event "${updatedEvent.title}" moved`, {
-      description: dayjs(updatedEvent.start).format("MMM D, YYYY"),
+    toast(`Event "${modifiedEvent.title}" moved`, {
+      description: dayjs(modifiedEvent.start).format("MMM D, YYYY"),
       position: "bottom-left",
     })
   }
@@ -228,16 +236,16 @@ export function EventCalendar({
       case 'month':
         return <MonthView currentDate={currentDate} events={events} onEventUpdate={handleEventUpdate} onEventSelect={handleEventSelect} onEventCreate={handleEventCreate} />
       case 'week':
-        return <WeekView currentDate={currentDate} events={events} />
+        return <WeekView currentDate={currentDate} events={events} onEventSelect={handleEventSelect} onEventCreate={handleEventCreate} />
       case 'day':
-        return <DayView currentDate={currentDate} events={events} />
+        return <DayView currentDate={currentDate} events={events} onEventSelect={handleEventSelect} onEventCreate={handleEventCreate} />
       case 'agenda':
-        return <AgendaView currentDate={currentDate} events={events} daysInAgenda={daysInAgenda} />
+        return <AgendaView currentDate={currentDate} events={events} daysInAgenda={daysInAgenda} onEventSelect={handleEventSelect} />
     }
   }
 
   return (
-    <div className="flex h-[100svh] flex-col">
+    <div className="flex min-h-[100svh] flex-col">
       {/* Header with navigation and view selector */}
       <div className="shrink-0 flex items-center justify-between border-b overflow-hidden">
         {/* Navigation */}

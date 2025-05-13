@@ -113,11 +113,10 @@ export function MonthView({
   const potentialDropRange = useMemo(() => {
     if (!activeDraggedEvent || !potentialStartDate) return null;
 
-    const originalStartDate = dayjs(activeDraggedEvent.start);
-    const duration = dayjs(activeDraggedEvent.end).diff(originalStartDate); // Calculate duration
-    const newEndDate = potentialStartDate.add(duration); // Calculate potential end date
+    const originalEventDuration = dayjs(activeDraggedEvent.end).diff(dayjs(activeDraggedEvent.start));
+    const newPotentialEndDate = potentialStartDate.add(originalEventDuration);
 
-    return { start: potentialStartDate, end: newEndDate };
+    return { start: potentialStartDate, end: newPotentialEndDate }; 
   }, [activeDraggedEvent, potentialStartDate]);
 
 
@@ -189,19 +188,29 @@ export function MonthView({
     // Check if dropped over a cell ('date' property) and dragging an event ('event' property)
     if (over?.data?.current?.date && active.data.current?.event) {
       const originalEvent = active.data.current.event as CalendarEventProps;
-      const originalStartDate = dayjs(originalEvent.start).startOf('day');
+      const originalStartDateDayOnly = dayjs(originalEvent.start).startOf('day');
 
       // Use the final potentialStartDate calculated during dragOver
-      const finalPotentialStartDate = potentialStartDate;
+      const finalPotentialDropDate = potentialStartDate; // This is the new DATE part
 
       // Only update if the drop target is valid and the date actually changed
-      if (onEventUpdate && finalPotentialStartDate && !finalPotentialStartDate.isSame(originalStartDate, 'day')) {
+      if (onEventUpdate && finalPotentialDropDate && !finalPotentialDropDate.isSame(originalStartDateDayOnly, 'day')) {
         const duration = dayjs(originalEvent.end).diff(originalEvent.start); // Calculate duration
-        const newEndDate = finalPotentialStartDate.add(duration); // Calculate new end date
+        
+        // Preserve original time
+        const originalStartTime = dayjs(originalEvent.start);
+        const newStartDateTime = finalPotentialDropDate
+          .hour(originalStartTime.hour())
+          .minute(originalStartTime.minute())
+          .second(originalStartTime.second())
+          .millisecond(originalStartTime.millisecond());
+
+        const newEndDateTime = newStartDateTime.add(duration); // Calculate new end date with preserved time
+
         onEventUpdate({
           ...originalEvent,
-          start: finalPotentialStartDate.toDate(),
-          end: newEndDate.toDate()
+          start: newStartDateTime.toDate(),
+          end: newEndDateTime.toDate(),
         });
       }
     }

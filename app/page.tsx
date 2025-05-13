@@ -45,7 +45,7 @@ const sampleEvents: CalendarEventProps[] = [
     title: "Team Meeting",
     description: "Weekly team sync",
     start: today.set('hour', 10).set('minute', 0).toDate(), // 10:00 AM today
-    end: today.set('hour', 11).set('minute', 0).toDate(), // 11:00 AM today
+    end: today.set('hour', 15).set('minute', 0).toDate(), // 11:00 AM today
     color: "sky",
     location: "Conference Room A",
   },

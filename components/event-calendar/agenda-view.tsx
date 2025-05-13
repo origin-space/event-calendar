@@ -10,7 +10,7 @@ export function AgendaView({ currentDate, daysInAgenda = 30 }: AgendaViewProps) 
   )
 
   return (
-    <div data-slot="agenda-view" className="flex h-full min-h-screen flex-col">
+    <div data-slot="agenda-view">
       {dates.map((date) => (
         <div key={date.toString()} className="border-b">
           <div className="p-4">
