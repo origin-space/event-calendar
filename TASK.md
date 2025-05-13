@@ -31,3 +31,8 @@
 - [ ] Draft README with project goals and install instructions
 - [ ] Add CONTRIBUTING.md for open source contributions
 
+## Current state
+Week view:
+[x] showing events, adding event dialog
+[ ] drag and drop events, handle all-day events
+
