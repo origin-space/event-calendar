@@ -1,16 +1,9 @@
-import React, { useMemo, useState, useRef } from "react"
+import React, { useMemo } from "react"
 import {
   DndContext,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  type DragStartEvent,
-  type DragOverEvent,
-  type DragEndEvent,
-  type Active,
-  pointerWithin,
   DragOverlay,
 } from "@dnd-kit/core"
+import { useCalendarDnd, useCalendarDndConfig } from "./calendar-dnd-context"
 
 import { DroppableCell } from "./droppable-cell"
 import dayjs from "dayjs"
@@ -50,29 +43,14 @@ export function MonthView({
   // Get the number of events that can be displayed in each cell
   const visibleCount = getVisibleEventCount();
 
-  /**
-   * Reference to track the day offset between where an event was grabbed and its start date
-   * This ensures events can be grabbed from any day they span and maintain proper positioning
-   */
-  const offsetRef = useRef<number | null>(null);
+  // Use the calendar drag hook for drag-and-drop functionality
+  const eventDrag = useCalendarDnd({
+    events,
+    onEventUpdate
+  });
 
-  // Currently active item being dragged
-  const [activeDragItem, setActiveDragItem] = useState<Active | null>(null)
-
-  // Potential start date if the dragged item were dropped at the current hover position (adjusted for grab offset)
-  const [potentialStartDate, setPotentialStartDate] = useState<dayjs.Dayjs | null>(null)
-
-  /**
-   * Configure drag sensors with activation constraints
-   * The distance constraint prevents accidental drags on small movements
-   */
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 10,
-      },
-    })
-  )
+  // Get common DnD configuration
+  const { sensors, collisionDetection } = useCalendarDndConfig();
 
   /**
    * Calculate and memoize the layout of events for each week
@@ -100,134 +78,20 @@ export function MonthView({
    * This provides access to all event properties during drag operations
    */
   const activeDraggedEvent = useMemo(() => {
-    // Check for the presence of 'event' in data to identify the dragged item type
-    if (!activeDragItem || !activeDragItem.data.current?.event) return null;
-    const draggedEventObject = activeDragItem.data.current.event as CalendarEventProps | undefined;
-    return events.find(e => e.id === draggedEventObject?.id);
-  }, [activeDragItem, events]);
+    // We'll use the event drag hook's active dragged event
+    return eventDrag.activeDraggedEvent;
+  }, [eventDrag.activeDraggedEvent]);
 
-  /**
-   * Calculate the potential new date range for the dragged event based on the potential start date.
-   * This is used to highlight cells that would be covered by the event if dropped.
-   */
-  const potentialDropRange = useMemo(() => {
-    if (!activeDraggedEvent || !potentialStartDate) return null;
-
-    const originalEventDuration = dayjs(activeDraggedEvent.end).diff(dayjs(activeDraggedEvent.start));
-    const newPotentialEndDate = potentialStartDate.add(originalEventDuration);
-
-    return { start: potentialStartDate, end: newPotentialEndDate }; 
-  }, [activeDraggedEvent, potentialStartDate]);
-
-
-  /**
-   * Handle the start of a drag operation
-   * Sets the active drag item and resets related state
-   */
-  const handleDragStart = (event: DragStartEvent) => {
-    if (event.active.data.current?.event) {
-      setActiveDragItem(event.active)
-      setPotentialStartDate(null) // Reset potential start date
-      offsetRef.current = null; // Reset offset
-    }
-  }
-
-  /**
-   * Handle drag over events to calculate potential drop positions
-   * Maintains the offset between where the event was grabbed and its start date
-   */
-  const handleDragOver = (event: DragOverEvent) => {
-    const { over, active } = event
-
-    // Ensure we have an active item and it's an event (has 'event' property)
-    if (!active?.data?.current?.event) {
-      setPotentialStartDate(null); // Clear potential date if not dragging an event
-      return;
-    }
-
-    // Clear potential start date if not hovering over a droppable cell (has 'date' property)
-    if (!over?.data?.current?.date) {
-      setPotentialStartDate(null);
-      return; // Exit if not hovering over a valid cell
-    }
-
-    // Calculate the offset between grab point and event start date (only once per drag)
-    // Check for 'date' on 'over' and 'event' on 'active'
-    if (offsetRef.current === null && over.data.current.date && active.data.current.event) {
-      const startDate = active.data.current.event.start;
-      const grabDate = over.data.current.date;
-      if (startDate && grabDate) {
-        const startDateObj = dayjs(startDate).startOf('day');
-        const grabDateObj = dayjs(grabDate).startOf('day');
-        offsetRef.current = grabDateObj.diff(startDateObj, 'day');
-      }
-    }
-
-    // Update the potential start date based on the cell being hovered over and the calculated offset
-    // Check for 'date' on 'over'
-    if (over.data.current.date) {
-      const overDate = dayjs(over.data.current.date).startOf('day'); // Date of the cell being hovered
-      const currentOffset = offsetRef.current; // Offset calculated above
-
-      // Calculate the potential start date by subtracting the offset from the hovered date
-      const newPotentialStartDate = currentOffset !== null ? overDate.subtract(currentOffset, 'day') : overDate;
-      setPotentialStartDate(newPotentialStartDate);
-    } else {
-      // If not hovering over a cell, clear the potential start date
-      setPotentialStartDate(null)
-    }
-  }
-
-  /**
-   * Handle the end of a drag operation
-   * Updates the event with new dates if dropped on a valid target
-   */
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event
-
-    // Check if dropped over a cell ('date' property) and dragging an event ('event' property)
-    if (over?.data?.current?.date && active.data.current?.event) {
-      const originalEvent = active.data.current.event as CalendarEventProps;
-      const originalStartDateDayOnly = dayjs(originalEvent.start).startOf('day');
-
-      // Use the final potentialStartDate calculated during dragOver
-      const finalPotentialDropDate = potentialStartDate; // This is the new DATE part
-
-      // Only update if the drop target is valid and the date actually changed
-      if (onEventUpdate && finalPotentialDropDate && !finalPotentialDropDate.isSame(originalStartDateDayOnly, 'day')) {
-        const duration = dayjs(originalEvent.end).diff(originalEvent.start); // Calculate duration
-        
-        // Preserve original time
-        const originalStartTime = dayjs(originalEvent.start);
-        const newStartDateTime = finalPotentialDropDate
-          .hour(originalStartTime.hour())
-          .minute(originalStartTime.minute())
-          .second(originalStartTime.second())
-          .millisecond(originalStartTime.millisecond());
-
-        const newEndDateTime = newStartDateTime.add(duration); // Calculate new end date with preserved time
-
-        onEventUpdate({
-          ...originalEvent,
-          start: newStartDateTime.toDate(),
-          end: newEndDateTime.toDate(),
-        });
-      }
-    }
-
-    // Reset drag state regardless of drop success
-    setActiveDragItem(null);
-    setPotentialStartDate(null);
-    offsetRef.current = null;
-  }
+  // We'll use the event drag hook's potential drop range for highlighting cells
+  const potentialDropRange = eventDrag.potentialDropRange;
 
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={pointerWithin}
-      onDragStart={handleDragStart}
-      onDragOver={handleDragOver}
-      onDragEnd={handleDragEnd}
+      collisionDetection={collisionDetection}
+      onDragStart={eventDrag.handleDragStart}
+      onDragOver={eventDrag.handleDragOver}
+      onDragEnd={eventDrag.handleDragEnd}
     >
       <div
         data-slot="month-view"
@@ -341,15 +205,16 @@ export function MonthView({
       </div>
       {/* Drag Overlay */}
       <DragOverlay dropAnimation={null} className="cursor-move">
-        {activeDragItem && activeDraggedEvent ? (
+        {eventDrag.activeDragItem && eventDrag.activeDraggedEvent ? (
           <EventItem
-            uniqueId={`overlay-${activeDraggedEvent.id}`}
-            event={activeDraggedEvent}
-            cellDate={dayjs(activeDragItem.data.current?.dragDate)}
-            isOverlay={true}
-            activeDragItemForOverlay={activeDragItem}
+            event={eventDrag.activeDraggedEvent}
+            cellDate={dayjs(eventDrag.activeDraggedEvent.start)}
+            isOverlay
+            activeDragItemForOverlay={eventDrag.activeDragItem}
             eventHeight={eventHeight}
             eventGap={eventGap}
+            uniqueId={`overlay-${eventDrag.activeDraggedEvent.id}`}
+            displayContext="month"
           />
         ) : null}
       </DragOverlay>

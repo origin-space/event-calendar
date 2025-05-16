@@ -5,17 +5,14 @@ import dayjs from 'dayjs'
 import isBetween from 'dayjs/plugin/isBetween';
 import { EventItem } from './event-item'; 
 import { StartHour, EndHour, WeekCellsHeight, EventHeight, EventGap } from './constants';
-import React, { useMemo, useState, useRef } from 'react'; 
+import React, { useMemo } from 'react'; 
 import { DroppableCell } from './droppable-cell'; 
+import { useCalendarDnd, useTimedEventDnd, useCalendarDndConfig } from './calendar-dnd-context';
 import {
   DndContext,
   PointerSensor,
   useSensor,
   useSensors,
-  type DragStartEvent,
-  type DragOverEvent,
-  type DragEndEvent,
-  type Active,
   DragOverlay,
   pointerWithin,
   useDroppable,
@@ -43,29 +40,20 @@ export function WeekView({
   const hours = getHours() 
   const weekStart = useMemo(() => dayjs(currentDate).startOf('week'), [currentDate]);
 
-  /**
-   * Reference to track the day offset between where an event was grabbed and its start date
-   * This ensures events can be grabbed from any day they span and maintain proper positioning
-   */
-  const offsetRef = useRef<number | null>(null);
-
-  // Currently active item being dragged
-  const [activeDragItem, setActiveDragItem] = useState<Active | null>(null);
-
-  // Potential start date if the dragged item were dropped at the current hover position (adjusted for grab offset)
-  const [potentialStartDate, setPotentialStartDate] = useState<dayjs.Dayjs | null>(null)
-
-  /**
-   * Configure drag sensors with activation constraints
-   * The distance constraint prevents accidental drags on small movements
-   */
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 10,
-      },
-    })
-  )
+  // Get common DnD configuration
+  const { sensors, collisionDetection } = useCalendarDndConfig();
+  
+  // Hook for all-day events drag and drop
+  const allDayDrag = useCalendarDnd({
+    events,
+    onEventUpdate
+  });
+  
+  // Hook for timed events drag and drop
+  const timedDrag = useTimedEventDnd({
+    events,
+    onEventUpdate
+  });
 
   const allDayEvents = useMemo(() => {
     return events
@@ -87,124 +75,8 @@ export function WeekView({
       });
   }, [events, days]);
 
-  const activeDraggedEvent = useMemo(() => {
-    if (!activeDragItem || !activeDragItem.data.current?.event) return null;
-    const draggedEventObject = activeDragItem.data.current.event as CalendarEventProps | undefined;
-    // Find the event from the main events array to ensure we have the latest version
-    return events.find(e => e.id === draggedEventObject?.id);
-  }, [activeDragItem, events]);
-  /**
-   * Calculate the potential new date range for the dragged event based on the potential start date.
-   * This is used to highlight cells that would be covered by the event if dropped.
-   */
-  const potentialDropRange = useMemo(() => {
-    if (!activeDraggedEvent || !potentialStartDate) return null;
-
-    const originalEventDuration = dayjs(activeDraggedEvent.end).diff(dayjs(activeDraggedEvent.start));
-    const newPotentialEndDate = potentialStartDate.add(originalEventDuration);
-
-    return { start: potentialStartDate, end: newPotentialEndDate }; 
-  }, [activeDraggedEvent, potentialStartDate]);
-
-
-  /**
-   * Handle the start of a drag operation
-   * Sets the active drag item and resets related state
-   */
-  const handleDragStart = (event: DragStartEvent) => {
-    if (event.active.data.current?.event) {
-      setActiveDragItem(event.active)
-      setPotentialStartDate(null) // Reset potential start date
-      offsetRef.current = null; // Reset offset
-    }
-  }
-
-  /**
-   * Handle drag over events to calculate potential drop positions
-   * Maintains the offset between where the event was grabbed and its start date
-   */
-  const handleDragOver = (event: DragOverEvent) => {
-    const { over, active } = event
-
-    // Ensure we have an active item and it's an event (has 'event' property)
-    if (!active?.data?.current?.event) {
-      setPotentialStartDate(null); // Clear potential date if not dragging an event
-      return;
-    }
-
-    // Clear potential start date if not hovering over a droppable cell (has 'date' property)
-    if (!over?.data?.current?.date) {
-      setPotentialStartDate(null);
-      return; // Exit if not hovering over a valid cell
-    }
-
-    // Calculate the offset between grab point and event start date (only once per drag)
-    if (offsetRef.current === null && over.data.current.date && active.data.current.event) {
-      const startDate = active.data.current.event.start;
-      const grabDate = over.data.current.date;
-      if (startDate && grabDate) {
-        const startDateObj = dayjs(startDate).startOf('day');
-        const grabDateObj = dayjs(grabDate).startOf('day');
-        offsetRef.current = grabDateObj.diff(startDateObj, 'day');
-      }
-    }
-
-    // Update the potential start date based on the cell being hovered over and the calculated offset
-    if (over.data.current.date) {
-      const overDate = dayjs(over.data.current.date).startOf('day'); // Date of the cell being hovered
-      const currentOffset = offsetRef.current || 0; // Use 0 as default if offset hasn't been calculated
-
-      // Calculate the potential start date by subtracting the offset from the hovered date
-      const newPotentialStartDate = overDate.subtract(currentOffset, 'day');
-      setPotentialStartDate(newPotentialStartDate);
-    } else {
-      // If not hovering over a cell, clear the potential start date
-      setPotentialStartDate(null)
-    }
-  }
-
-  /**
-   * Handle the end of a drag operation
-   * Updates the event with new dates if dropped on a valid target
-   */
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event
-
-    // Check if dropped over a cell ('date' property) and dragging an event ('event' property)
-    if (over?.data?.current?.date && active.data.current?.event) {
-      const originalEvent = active.data.current.event as CalendarEventProps;
-      const originalStartDateDayOnly = dayjs(originalEvent.start).startOf('day');
-
-      // Use the final potentialStartDate calculated during dragOver
-      const finalPotentialDropDate = potentialStartDate; // This is the new DATE part
-
-      // Only update if the drop target is valid and the date actually changed
-      if (onEventUpdate && finalPotentialDropDate && !finalPotentialDropDate.isSame(originalStartDateDayOnly, 'day')) {
-        const duration = dayjs(originalEvent.end).diff(dayjs(originalEvent.start)); // Calculate duration in milliseconds
-        
-        // Preserve original time
-        const originalStartTime = dayjs(originalEvent.start);
-        const newStartDateTime = finalPotentialDropDate
-          .hour(originalStartTime.hour())
-          .minute(originalStartTime.minute())
-          .second(originalStartTime.second())
-          .millisecond(originalStartTime.millisecond());
-
-        const newEndDateTime = newStartDateTime.add(duration); // Calculate new end date with preserved time
-
-        onEventUpdate({
-          ...originalEvent,
-          start: newStartDateTime.toDate(),
-          end: newEndDateTime.toDate(),
-        });
-      }
-    }
-
-    // Reset drag state regardless of drop success
-    setActiveDragItem(null);
-    setPotentialStartDate(null);
-    offsetRef.current = null;
-  }
+  // We'll use the all-day drag context's potential drop range for highlighting cells
+  const potentialDropRange = allDayDrag.potentialDropRange;
 
   const processedDayEvents = useMemo(() => {
     const result = days.map((day) => {
@@ -314,14 +186,7 @@ export function WeekView({
   const showAllDaySection = allDayEvents.length > 0;
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={pointerWithin}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-      onDragOver={handleDragOver}
-    >
-      <div data-slot="week-view">
+    <div data-slot="week-view">
         <div className="sticky top-0 z-30 grid grid-cols-8 border-b bg-gray-50 backdrop-blur-md">
           <div className="border-r p-2 text-center text-xs text-gray-500"> 
              <span className="max-[479px]:sr-only">{dayjs().format('Z')}</span> 
@@ -351,13 +216,20 @@ export function WeekView({
         </div>
 
         {showAllDaySection && (
-          <div
-            className="border-b border-gray-200 relative"
-            style={{
-              '--event-height': `${EventHeight}px`,
-              '--event-gap': `${EventGap}px`,
-            } as React.CSSProperties}
+          <DndContext
+            sensors={sensors}
+            collisionDetection={collisionDetection}
+            onDragStart={allDayDrag.handleDragStart}
+            onDragEnd={allDayDrag.handleDragEnd}
+            onDragOver={allDayDrag.handleDragOver}
           >
+            <div
+              className="border-b border-gray-200 relative"
+              style={{
+                '--event-height': `${EventHeight}px`,
+                '--event-gap': `${EventGap}px`,
+              } as React.CSSProperties}
+            >
             {/* Background grid cells */}
             <div className="absolute inset-0 grid grid-cols-8" aria-hidden="true">
             <span></span>
@@ -403,6 +275,12 @@ export function WeekView({
                     cellDate={cellDate}
                     ref={null}
                     displayContext="weekAllDay"
+                    onClick={() => {
+                      if (onEventCreate) {
+                        // Create an all-day event starting at the beginning of this day
+                        onEventCreate(cellDate.startOf('day').toDate());
+                      }
+                    }}
                   >
                     <>
                        {/* <h2 className="sr-only">
@@ -419,12 +297,12 @@ export function WeekView({
                           <EventItem
                             key={uniqueSegmentId}
                             uniqueId={uniqueSegmentId}
-                            event={event} // This event object now includes cellSlot from calculateWeeklyEventLayout
+                            event={event}
                             cellDate={cellDate} 
                             eventHeight={EventHeight} 
                             eventGap={EventGap} 
                             onEventSelect={handleEventClick}
-                            displayContext="month" 
+                            displayContext="weekAllDay"
                           />
                         );
                       })}
@@ -433,10 +311,32 @@ export function WeekView({
                 );
               })}
             </div>
-          </div>
+            </div>
+            <DragOverlay dropAnimation={null}>
+              {allDayDrag.activeDragItem && allDayDrag.activeDraggedEvent ? (
+                <EventItem
+                  event={allDayDrag.activeDraggedEvent}
+                  cellDate={dayjs(allDayDrag.activeDraggedEvent.start)}
+                  isOverlay
+                  activeDragItemForOverlay={allDayDrag.activeDragItem}
+                  eventHeight={EventHeight}
+                  eventGap={EventGap}
+                  uniqueId={`overlay-${allDayDrag.activeDraggedEvent.id}`}
+                  displayContext="weekAllDay"
+                />
+              ) : null}
+            </DragOverlay>
+          </DndContext>
         )}
 
-        <div className="grid flex-1 grid-cols-8 overflow-hidden">
+        <DndContext
+          sensors={sensors}
+          collisionDetection={collisionDetection}
+          onDragStart={timedDrag.handleDragStart}
+          onDragEnd={timedDrag.handleDragEnd}
+          onDragOver={timedDrag.handleDragOver}
+        >
+          <div className="grid flex-1 grid-cols-8 overflow-hidden">
           <div className="border-r border-gray-200">
             {Array.from({ length: EndHour - StartHour }).map((_, hourIndex) => {
               const currentHour = StartHour + hourIndex;
@@ -473,89 +373,81 @@ export function WeekView({
                   <EventItem
                     key={`timed-${positionedEvent.event.id}-${day.date.toString()}`}
                     event={positionedEvent.event}
-                    cellDate={day.date} // Keep for context if needed by EventItem
-                    eventHeight={positionedEvent.height} // Pass the calculated height as eventHeight prop
-                    eventGap={0} // Keep if EventItem uses it for internal calculations
+                    cellDate={day.date}
+                    eventHeight={positionedEvent.height}
+                    eventGap={0}
                     uniqueId={`timed-${positionedEvent.event.id}-${day.date.toString()}-${dayIndex}`}
                     onEventSelect={handleEventClick}
-                    displayContext="weekTimed" // New prop to indicate rendering mode
+                    displayContext="weekTimed"
                     style={{
                       '--event-top': `${positionedEvent.top}px`,
                       '--event-height': `${positionedEvent.height}px`,
                       '--event-left': `${positionedEvent.left}%`,
                       '--event-width': `${positionedEvent.width}%`,
-                      zIndex: positionedEvent.zIndex, // Pass zIndex directly
+                      zIndex: positionedEvent.zIndex,
                     } as React.CSSProperties}
                   />
                 );
               })}
 
+              {/* Create one droppable per hour instead of 4 per hour */}
               {Array.from({ length: EndHour - StartHour }).map((_, hourIndex) => {
                 const currentHour = StartHour + hourIndex;
-                // Find the matching hour string for display, or format directly
-                const hourLabel = hours.find(h => parseInt(h.split(':')[0]) === currentHour) || `${String(currentHour).padStart(2, '0')}:00`;
+                const hourDateTime = day.date.hour(currentHour).minute(0).second(0).millisecond(0);
+                
+                // Create a single droppable for the entire hour
+                const { setNodeRef, isOver } = useDroppable({
+                  id: `timed-slot-${hourDateTime.format('YYYY-MM-DD-HH')}`,
+                  data: {
+                    dateTime: hourDateTime.toISOString(),
+                    isAllDaySlot: false,
+                    displayContext: 'weekTimed',
+                  },
+                });
                 
                 return (
                   <div
                     key={`${day.date.toString()}-h${currentHour}`}
-                    className="relative border-b border-gray-200"
+                    ref={setNodeRef}
+                    className={cn(
+                      "relative border-b border-gray-200",
+                      isOver && timedDrag.activeDragItem?.data.current?.displayContext === 'weekTimed' && "bg-blue-100/50 ring-1 ring-blue-500 z-10",
+                      "hover:bg-blue-200/30 cursor-pointer"
+                    )}
                     style={{ height: `${WeekCellsHeight}px` }}
+                    onClick={() => {
+                      if (onEventCreate) {
+                        onEventCreate(hourDateTime.toDate());
+                      }
+                    }}
                   >
-                    {[0, 1, 2, 3].map((quarter) => {
-                      const slotDateTime = day.date.hour(currentHour).minute(quarter * 15).second(0).millisecond(0);
-                      const TimedSlotDroppable = ({ children }: { children?: React.ReactNode }) => {
-                        const { setNodeRef, isOver } = useDroppable({
-                          id: `timed-slot-${slotDateTime.format('YYYY-MM-DD-HH-mm')}`,
-                          data: {
-                            dateTime: slotDateTime.toISOString(),
-                            isAllDaySlot: false,
-                          },
-                        });
-                        return (
-                          <div
-                            ref={setNodeRef}
-                            className={cn(
-                              "absolute w-full not-first:border-t border-gray-100",
-                              isOver && activeDragItem?.data.current?.displayContext === 'weekTimed' && "bg-blue-100/50 ring-1 ring-blue-500 z-10",
-                              "hover:bg-blue-200/30 cursor-pointer" // Generic hover for visual feedback
-                            )}
-                            style={{
-                              height: `${WeekCellsHeight / 4}px`,
-                              top: `${(quarter * WeekCellsHeight) / 4}px`,
-                            }}
-                            onClick={() => {
-                              if (onEventCreate) {
-                                onEventCreate(slotDateTime.toDate());
-                              }
-                            }}
-                          >
-                            {children}
-                          </div>
-                        );
-                      };
-                      return <TimedSlotDroppable key={slotDateTime.format('YYYY-MM-DD-HH-mm')} />;
-                    })}
+                    {/* We still render the hour markers but don't make them droppable */}
+                    {hourIndex > 0 && dayIndex === 0 && (
+                      <span className="absolute -top-2.5 left-1 text-xs text-gray-400">
+                        {hours.find(h => parseInt(h.split(':')[0]) === currentHour) || `${String(currentHour).padStart(2, '0')}:00`}
+                      </span>
+                    )}
                   </div>
                 );
               })}
             </div>
           ))}
-        </div>
-      </div>
-      <DragOverlay dropAnimation={null}>
-        {activeDragItem && activeDraggedEvent ? (
-          <EventItem
-            event={activeDraggedEvent}
-            cellDate={dayjs(activeDraggedEvent.start)}
-            isOverlay
-            activeDragItemForOverlay={activeDragItem}
-            eventHeight={EventHeight}
-            eventGap={EventGap}
-            uniqueId={`overlay-${activeDraggedEvent.id}`}
-            displayContext="month" // Usemonth for all-day events to ensure consistent behavior
-          />
-        ) : null}
-      </DragOverlay>
-    </DndContext>
+          </div>
+          <DragOverlay dropAnimation={null} className="cursor-move">
+            {timedDrag.activeDragItem && timedDrag.activeDraggedEvent ? (
+              <EventItem
+                event={timedDrag.activeDraggedEvent}
+                cellDate={dayjs(timedDrag.activeDraggedEvent.start)}
+                isOverlay
+                activeDragItemForOverlay={timedDrag.activeDragItem}
+                eventHeight={EventHeight}
+                eventGap={EventGap}
+                uniqueId={`overlay-timed-${timedDrag.activeDraggedEvent.id}`}
+                displayContext="weekTimed"
+              />
+            ) : null}
+          </DragOverlay>
+        </DndContext>
+    </div>
   )
 }

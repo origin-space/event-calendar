@@ -14,7 +14,7 @@ interface EventItemProps {
   eventGap: number;
   uniqueId: string;
   onEventSelect?: (event: CalendarEventProps) => void;
-  displayContext?: 'weekTimed' | 'month';
+  displayContext?: 'weekTimed' | 'weekAllDay' | 'month';
   style?: React.CSSProperties & {
     '--event-top'?: string | number;
     '--event-height'?: string | number;

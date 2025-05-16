@@ -15,6 +15,8 @@ export function DroppableCell({ id, cellDate, displayContext = 'month', children
     id,
     data: {
       date: cellDate.toISOString(),
+      isAllDaySlot: displayContext === 'weekAllDay' || displayContext === 'month',
+      displayContext: displayContext,
     },
   });
 

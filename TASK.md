@@ -34,5 +34,5 @@
 ## Current state
 Week view:
 [x] showing events, adding event dialog
-[ ] drag and drop events, handle all-day events
-
+[x] drag and drop events, handle all-day events
+[ ] drag and drop events, handle week timed events
