@@ -14,7 +14,7 @@ interface EventItemProps {
   eventGap: number;
   uniqueId: string;
   onEventSelect?: (event: CalendarEventProps) => void;
-  displayContext?: 'weekTimed' | 'monthAllDay';
+  displayContext?: 'weekTimed' | 'month';
   style?: React.CSSProperties & {
     '--event-top'?: string | number;
     '--event-height'?: string | number;
@@ -32,13 +32,13 @@ export function EventItem({
   eventGap,
   uniqueId,
   onEventSelect,
-  displayContext = 'monthAllDay',
+  displayContext = 'month',
   style: directStylesFromProps,
 }: EventItemProps): React.ReactNode {
   const eventInfoResult = getEventInfo(event, cellDate);
   const info = eventInfoResult as Extract<ReturnType<typeof getEventInfo>, { show: true } | { isMultiDay: true }>;
   const {
-    width: monthAllDay_eventWidth = '100%',
+    width: month_eventWidth = '100%',
     days = 1,
     isStartDay = false,
     isMultiDay = false,
@@ -49,7 +49,7 @@ export function EventItem({
 
   const isWeekTimed = displayContext === 'weekTimed';
 
-  const monthAllDay_gridTopPosition = event.cellSlot ? event.cellSlot * (eventHeight + eventGap) : 0;
+  const month_gridTopPosition = event.cellSlot ? event.cellSlot * (eventHeight + eventGap) : 0;
 
   // Calculate initialTopPosition ensuring it's a number
   let calculatedInitialTop: number;
@@ -63,7 +63,7 @@ export function EventItem({
       calculatedInitialTop = 0;
     }
   } else {
-    calculatedInitialTop = monthAllDay_gridTopPosition;
+    calculatedInitialTop = month_gridTopPosition;
   }
 
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
@@ -131,8 +131,8 @@ export function EventItem({
     );
   } else {
     rootStyle = {
-      '--event-width': monthAllDay_eventWidth,
-      '--event-top': `${monthAllDay_gridTopPosition}px`,
+      '--event-width': month_eventWidth,
+      '--event-top': `${month_gridTopPosition}px`,
       '--event-height': `${eventHeight}px`,
       zIndex: 10 + (event.cellSlot || 0),
     };

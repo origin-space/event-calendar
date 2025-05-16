@@ -1,20 +1,33 @@
 import { useDroppable } from "@dnd-kit/core";
+import { cn } from "@/lib/utils";
 import dayjs from "dayjs";
+
 interface DroppableCellProps {
   id: string,
   cellDate: dayjs.Dayjs;
+  displayContext?: 'weekTimed' | 'weekAllDay' | 'month';
   children: React.ReactNode;
   ref: React.RefObject<HTMLDivElement> | null;
   onClick?: () => void;
 }
 
-export function DroppableCell({ id, cellDate, children, ref, onClick }: DroppableCellProps) {
+export function DroppableCell({ id, cellDate, displayContext = 'month', children, ref, onClick }: DroppableCellProps) {
   const { setNodeRef } = useDroppable({
     id,
     data: {
       date: cellDate.toISOString(),
     },
   });
+
+  if (displayContext === 'weekAllDay') {
+    return (
+      <div ref={setNodeRef} className="border-r border-gray-200 last:border-r-0">
+        <div ref={ref}>
+          {children}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div ref={setNodeRef} className="group/row flex" onClick={onClick}>

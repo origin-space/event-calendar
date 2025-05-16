@@ -336,12 +336,8 @@ export function MonthView({
       <DragOverlay dropAnimation={null} className="cursor-move">
         {activeDragItem && activeDraggedEvent ? (
           <EventItem
-            // #Reason: Use the unique ID from the active drag item for the overlay instance.
-            // This ensures dnd-kit recognizes it correctly. The ID format matches the grid items.
-            uniqueId={activeDragItem.id as string}
+            uniqueId={`overlay-${activeDraggedEvent.id}`}
             event={activeDraggedEvent}
-            // #Reason: Use the original drag date from the active item's data, not just the event start date,
-            // as the overlay needs to represent the specific segment being dragged.
             cellDate={dayjs(activeDragItem.data.current?.dragDate)}
             isOverlay={true}
             activeDragItemForOverlay={activeDragItem}
