@@ -1,5 +1,5 @@
 import { useDroppable } from "@dnd-kit/core";
-import { cn } from "@/lib/utils";
+import { EventHeight, EventGap } from './constants';
 import dayjs from "dayjs";
 
 interface DroppableCellProps {
@@ -21,8 +21,11 @@ export function DroppableCell({ id, cellDate, displayContext = 'month', children
 
   if (displayContext === 'weekAllDay') {
     return (
-      <div ref={setNodeRef} className="border-r border-gray-200 last:border-r-0">
-        <div ref={ref}>
+      <div
+        ref={setNodeRef}
+        className="flex"    
+      >
+        <div className="relative flex-1 mt-(--event-gap)" ref={ref}>
           {children}
         </div>
       </div>
@@ -30,7 +33,11 @@ export function DroppableCell({ id, cellDate, displayContext = 'month', children
   }
 
   return (
-    <div ref={setNodeRef} className="group/row flex" onClick={onClick}>
+    <div
+      ref={setNodeRef}
+      className="group/row flex"    
+      onClick={onClick}
+    >
       <div className="relative flex-1 mt-8" ref={ref}>
         {children}
       </div>

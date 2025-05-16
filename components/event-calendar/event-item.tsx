@@ -120,6 +120,7 @@ export function EventItem({
     '--event-height'?: string | number;
     '--event-left'?: string | number;
     '--event-width'?: string | number;
+    '--event-z'?: string | number;
   } = {};
   let rootClasses: string = '';
 
@@ -133,12 +134,11 @@ export function EventItem({
     rootStyle = {
       '--event-width': month_eventWidth,
       '--event-top': `${month_gridTopPosition}px`,
-      '--event-height': `${eventHeight}px`,
-      zIndex: 10 + (event.cellSlot || 0),
+      '--event-z': 10 + (event.cellSlot || 0)
     };
     rootClasses = cn(
       'absolute px-0.5 transition-[top]',
-      'top-(--event-top) w-[calc(var(--event-width)-1px)]'
+      'top-(--event-top) w-[calc(var(--event-width)-1px)] z-(--event-z)'
     );
   }
 

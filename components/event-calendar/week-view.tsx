@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils'
 import { type CalendarEventProps, type CalendarViewProps } from './types/calendar'
-import { getWeekDays, getHours } from './utils/calendar' 
+import { getWeekDays, getHours, calculateWeeklyEventLayout } from './utils/calendar' 
 import dayjs from 'dayjs'
 import isBetween from 'dayjs/plugin/isBetween';
 import { EventItem } from './event-item'; 
@@ -268,9 +268,6 @@ export function WeekView({
         columns[columnIndex] = currentColumn;
         currentColumn.push({ event, end: eventEnd });
 
-        const totalColumnsForOverlap = columns.length; 
-        const numOverlappingColumns = columns.reduce((acc, col) => col.some(c => eventStart.isBefore(c.end) && eventEnd.isAfter(dayjs(c.event.start))) ? acc + 1 : acc, 0);
-
         const widthPercentage = 100 / (columns.length); 
         const leftPercentage = columnIndex * widthPercentage;
 
@@ -294,6 +291,25 @@ export function WeekView({
       onEventSelect(event); 
     }
   };
+
+  // Calculate layout for all-day events (assigns cellSlot property for vertical stacking)
+  const allDayEventsWithLayout = useMemo(() => {
+    if (allDayEvents.length === 0) return [];
+    return calculateWeeklyEventLayout(allDayEvents, weekStart);
+  }, [allDayEvents, weekStart]);
+
+  // Calculate the maximum cell slot used + 1 to determine the height of the all-day section
+  const maxAllDaySlot = useMemo(() => {
+    if (allDayEventsWithLayout.length === 0) return 0;
+    const maxSlot = Math.max(...allDayEventsWithLayout.map(event => event.cellSlot || 0));
+    return maxSlot + 1; // Add 1 because slots are zero-indexed
+  }, [allDayEventsWithLayout]);
+
+  // Calculate the height of the all-day section based on the number of slots
+  const allDaySectionHeight = useMemo(() => {
+    if (maxAllDaySlot === 0) return EventHeight + (2 * EventGap);
+    return (maxAllDaySlot * EventHeight) + ((maxAllDaySlot + 1) * EventGap);
+  }, [maxAllDaySlot, EventHeight, EventGap]);
 
   const showAllDaySection = allDayEvents.length > 0;
 
@@ -335,7 +351,13 @@ export function WeekView({
         </div>
 
         {showAllDaySection && (
-          <div className="border-b border-gray-200 relative">
+          <div
+            className="border-b border-gray-200 relative"
+            style={{
+              '--event-height': `${EventHeight}px`,
+              '--event-gap': `${EventGap}px`,
+            } as React.CSSProperties}
+          >
             {/* Background grid cells */}
             <div className="absolute inset-0 grid grid-cols-8" aria-hidden="true">
             <span></span>
@@ -353,7 +375,7 @@ export function WeekView({
               })}
             </div>
             {/* Foreground grid for events and drop zones */}
-            <div className="grid grid-cols-8 h-20">
+            <div className="grid grid-cols-8" style={{ height: `${allDaySectionHeight}px` }}>
               <div className="relative border-r border-gray-200">
                 <span className="absolute bottom-0 left-0 h-6 w-full pe-2 text-right text-[10px] text-gray-400 sm:pe-4 sm:text-xs">
                   All day
@@ -361,7 +383,8 @@ export function WeekView({
               </div>
               {days.map((cell, dayIndex) => {
                 const cellDate = cell.date;
-                const dayAllDayEvents = allDayEvents.filter((event) => {
+                // Filter the events with layout that apply to this specific day
+                const dayAllDayEvents = allDayEventsWithLayout.filter((event) => {
                   const eventStart = dayjs(event.start);
                   const eventEnd = dayjs(event.end);
                   return (
@@ -381,23 +404,31 @@ export function WeekView({
                     ref={null}
                     displayContext="weekAllDay"
                   >
-                    {dayAllDayEvents.map((event) => {
-                      // Create a consistent ID format for the event segment
-                      const uniqueSegmentId = `all-day-${event.id}-${cellDate.format('YYYY-MM-DD')}`;
+                    <>
+                       {/* <h2 className="sr-only">
+                        {sortedEvents.length === 0 ? "No events, " :
+                          sortedEvents.length === 1 ? "1 event, " :
+                            `${sortedEvents.length} events, `}
+                        {cellDate.format('dddd, MMMM D')}
+                      </h2>                     */}
+                      {dayAllDayEvents.map((event) => {
+                        // Create a consistent ID format for the event segment
+                        const uniqueSegmentId = `all-day-${event.id}-${cellDate.format('YYYY-MM-DD')}`;
 
-                      return (
-                        <EventItem
-                          key={uniqueSegmentId}
-                          uniqueId={uniqueSegmentId}
-                          event={event}
-                          cellDate={cellDate} 
-                          eventHeight={EventHeight} 
-                          eventGap={EventGap} 
-                          onEventSelect={handleEventClick}
-                          displayContext="month" 
-                        />
-                      );
-                    })}
+                        return (
+                          <EventItem
+                            key={uniqueSegmentId}
+                            uniqueId={uniqueSegmentId}
+                            event={event} // This event object now includes cellSlot from calculateWeeklyEventLayout
+                            cellDate={cellDate} 
+                            eventHeight={EventHeight} 
+                            eventGap={EventGap} 
+                            onEventSelect={handleEventClick}
+                            displayContext="month" 
+                          />
+                        );
+                      })}
+                    </>
                   </DroppableCell>
                 );
               })}

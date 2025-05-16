@@ -27,8 +27,8 @@ import { EventItem } from "./event-item";
 export function MonthView({
   currentDate,
   events = [],
-  eventHeight = 24,
-  eventGap = 2,
+  eventHeight = 24, // xxx: replace these with constants?
+  eventGap = 2, // xxx: replace these with constants?
   onEventUpdate,
   onEventSelect,
   onEventCreate
@@ -229,7 +229,14 @@ export function MonthView({
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
-      <div data-slot="month-view" className="flex-1 flex h-full flex-col">
+      <div
+        data-slot="month-view"
+        className="flex-1 flex h-full flex-col"
+        style={{
+          '--event-height': `${eventHeight}px`,
+          '--event-gap': `${eventGap}px`,
+        } as React.CSSProperties}
+      >
         {/* Weekday headers */}
         <div className="grid grid-cols-7 border-b">
           {weekDays.map((day) => (
@@ -299,7 +306,7 @@ export function MonthView({
                             return (
                               <EventItem
                                 key={uniqueSegmentId}
-                                uniqueId={uniqueSegmentId} // Pass the unique ID for dnd-kit
+                                uniqueId={uniqueSegmentId}
                                 event={event}
                                 cellDate={cellDate}
                                 eventHeight={eventHeight}
