@@ -1,5 +1,4 @@
 import { useDroppable } from "@dnd-kit/core";
-import { EventHeight, EventGap } from './constants';
 import dayjs from "dayjs";
 
 interface DroppableCellProps {
