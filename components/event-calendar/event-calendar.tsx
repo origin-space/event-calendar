@@ -22,7 +22,7 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 
-import { cn } from "@/lib/utils"
+import { capitalize, cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -45,6 +45,8 @@ import {
   WeekCellsHeight,
   WeekView,
 } from "@/components/event-calendar"
+import { useTranslation } from "react-i18next"
+import { useLocale } from "@/hooks/use-locale"
 
 export interface EventCalendarProps {
   events?: CalendarEvent[]
@@ -63,6 +65,8 @@ export function EventCalendar({
   className,
   initialView = "month",
 }: EventCalendarProps) {
+  const { t } = useTranslation()
+  const locale = useLocale()
   const [currentDate, setCurrentDate] = useState(new Date())
   const [view, setView] = useState<CalendarView>(initialView)
   const [isEventDialogOpen, setIsEventDialogOpen] = useState(false)
@@ -174,8 +178,8 @@ export function EventCalendar({
     if (event.id) {
       onEventUpdate?.(event)
       // Show toast notification when an event is updated
-      toast(`Event "${event.title}" updated`, {
-        description: format(new Date(event.start), "MMM d, yyyy"),
+      toast(`${capitalize(t("event"))} "${event.title}" ${t("updated")}`, {
+        description: format(new Date(event.start), "MMM d, yyyy", { locale }),
         position: "bottom-left",
       })
     } else {
@@ -184,8 +188,8 @@ export function EventCalendar({
         id: Math.random().toString(36).substring(2, 11),
       })
       // Show toast notification when an event is added
-      toast(`Event "${event.title}" added`, {
-        description: format(new Date(event.start), "MMM d, yyyy"),
+      toast(`${capitalize(t("event"))} "${event.title}" ${t("added")}`, {
+        description: format(new Date(event.start), "MMM d, yyyy", { locale }),
         position: "bottom-left",
       })
     }
@@ -201,8 +205,8 @@ export function EventCalendar({
 
     // Show toast notification when an event is deleted
     if (deletedEvent) {
-      toast(`Event "${deletedEvent.title}" deleted`, {
-        description: format(new Date(deletedEvent.start), "MMM d, yyyy"),
+      toast(`${capitalize(t("event"))} "${deletedEvent.title}" ${t("deleted")}`, {
+        description: format(new Date(deletedEvent.start), "MMM d, yyyy", { locale }),
         position: "bottom-left",
       })
     }
@@ -212,34 +216,34 @@ export function EventCalendar({
     onEventUpdate?.(updatedEvent)
 
     // Show toast notification when an event is updated via drag and drop
-    toast(`Event "${updatedEvent.title}" moved`, {
-      description: format(new Date(updatedEvent.start), "MMM d, yyyy"),
+    toast(`${capitalize(t("event"))} "${updatedEvent.title}" ${t("moved")}`, {
+      description: format(new Date(updatedEvent.start), "MMM d, yyyy", { locale }),
       position: "bottom-left",
     })
   }
 
   const viewTitle = useMemo(() => {
     if (view === "month") {
-      return format(currentDate, "MMMM yyyy")
+      return format(currentDate, "MMMM yyyy", { locale })
     } else if (view === "week") {
       const start = startOfWeek(currentDate, { weekStartsOn: 0 })
       const end = endOfWeek(currentDate, { weekStartsOn: 0 })
       if (isSameMonth(start, end)) {
-        return format(start, "MMMM yyyy")
+        return format(start, "MMMM yyyy", { locale })
       } else {
-        return `${format(start, "MMM")} - ${format(end, "MMM yyyy")}`
+        return `${format(start, "MMM", { locale })} - ${format(end, "MMM yyyy", { locale })}`
       }
     } else if (view === "day") {
       return (
         <>
           <span className="min-[480px]:hidden" aria-hidden="true">
-            {format(currentDate, "MMM d, yyyy")}
+            {format(currentDate, "MMM d, yyyy", { locale })}
           </span>
           <span className="max-[479px]:hidden min-md:hidden" aria-hidden="true">
-            {format(currentDate, "MMMM d, yyyy")}
+            {format(currentDate, "MMMM d, yyyy", { locale })}
           </span>
           <span className="max-md:hidden">
-            {format(currentDate, "EEE MMMM d, yyyy")}
+            {format(currentDate, "EEE MMMM d, yyyy", { locale })}
           </span>
         </>
       )
@@ -249,12 +253,12 @@ export function EventCalendar({
       const end = addDays(currentDate, AgendaDaysToShow - 1)
 
       if (isSameMonth(start, end)) {
-        return format(start, "MMMM yyyy")
+        return format(start, "MMMM yyyy", { locale })
       } else {
-        return `${format(start, "MMM")} - ${format(end, "MMM yyyy")}`
+        return `${format(start, "MMM", { locale })} - ${format(end, "MMM yyyy", { locale })}`
       }
     } else {
-      return format(currentDate, "MMMM yyyy")
+      return format(currentDate, "MMMM yyyy", { locale })
     }
   }, [currentDate, view])
 
@@ -287,7 +291,9 @@ export function EventCalendar({
                 size={16}
                 aria-hidden="true"
               />
-              <span className="max-[479px]:sr-only">Today</span>
+              <span className="max-[479px]:sr-only">
+                {capitalize(t("today"))}
+              </span>
             </Button>
             <div className="flex items-center sm:gap-2">
               <Button
@@ -332,16 +338,28 @@ export function EventCalendar({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="min-w-32">
                 <DropdownMenuItem onClick={() => setView("month")}>
-                  Month <DropdownMenuShortcut>M</DropdownMenuShortcut>
+                  Month 
+                  <DropdownMenuShortcut>
+                    {capitalize(t("month_abbr"))}
+                  </DropdownMenuShortcut>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setView("week")}>
-                  Week <DropdownMenuShortcut>W</DropdownMenuShortcut>
+                  Week 
+                  <DropdownMenuShortcut>
+                    {capitalize(t("week_abbr"))}
+                  </DropdownMenuShortcut>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setView("day")}>
-                  Day <DropdownMenuShortcut>D</DropdownMenuShortcut>
+                  Day 
+                  <DropdownMenuShortcut>
+                    {capitalize(t("day_abbr"))}
+                  </DropdownMenuShortcut>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setView("agenda")}>
-                  Agenda <DropdownMenuShortcut>A</DropdownMenuShortcut>
+                  Agenda 
+                  <DropdownMenuShortcut>
+                    {capitalize(t("agenda_abbr"))}
+                  </DropdownMenuShortcut>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -357,7 +375,9 @@ export function EventCalendar({
                 size={16}
                 aria-hidden="true"
               />
-              <span className="max-sm:sr-only">New event</span>
+              <span className="max-sm:sr-only">
+                {t("new_event")}
+              </span>
             </Button>
           </div>
         </div>
